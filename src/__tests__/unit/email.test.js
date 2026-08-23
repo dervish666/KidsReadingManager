@@ -536,7 +536,7 @@ describe('Email Service', () => {
 
         expect(requestBody.subject).toBe('Welcome to Tally Reading - Springfield Elementary');
         expect(requestBody.text).toContain('Hi Jane Doe');
-        expect(requestBody.text).toContain('Welcome to Tally Reading');
+        expect(requestBody.text).toContain('on Tally Reading');
         expect(requestBody.text).toContain('Springfield Elementary');
         expect(requestBody.text).toContain('Email: newuser@example.com');
         expect(requestBody.text).toContain('Temporary Password: TempPass123!');
@@ -710,8 +710,8 @@ describe('Email Service', () => {
         const fetchCall = global.fetch.mock.calls[0];
         const requestBody = JSON.parse(fetchCall[1].body);
 
-        expect(requestBody.text).toContain('change your password immediately');
-        expect(requestBody.html).toContain('change your password immediately');
+        expect(requestBody.text).toContain('change your password straight away');
+        expect(requestBody.html).toContain('change your password straight away');
       });
 
       it('should include HTML styling in welcome email', async () => {
@@ -734,7 +734,7 @@ describe('Email Service', () => {
 
         expect(requestBody.html).toContain('<!DOCTYPE html>');
         expect(requestBody.html).toContain('Tally Reading');
-        expect(requestBody.html).toContain('Log In Now');
+        expect(requestBody.html).toContain('>Log in</a>');
         expect(requestBody.html).toContain('linear-gradient');
       });
 
@@ -756,7 +756,7 @@ describe('Email Service', () => {
         const fetchCall = global.fetch.mock.calls[0];
         const requestBody = JSON.parse(fetchCall[1].body);
 
-        expect(requestBody.html).toContain('Your login credentials');
+        expect(requestBody.html).toContain('Your login details');
         expect(requestBody.html).toContain('Email: credentials@test.com');
         expect(requestBody.html).toContain('Temporary Password: CredPass456!');
       });

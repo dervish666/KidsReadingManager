@@ -772,7 +772,7 @@ const HomeReadingRegister = () => {
         bgOverride = sourcesBackground(sources, 'light');
         color = sources.length === 1 ? READ_SOURCE_COLORS[sources[0]].dark : '#3D3D3D';
         content = '✓';
-        ariaLabel = `Read — ${describeReadSources(sources)}`;
+        ariaLabel = `Read, ${describeReadSources(sources)}`;
         break;
       }
       case READING_STATUS.MULTIPLE: {
@@ -780,7 +780,7 @@ const HomeReadingRegister = () => {
         bgOverride = sourcesBackground(sources, 'main');
         color = 'white';
         content = count;
-        ariaLabel = `Read multiple times — ${describeReadSources(sources)}`;
+        ariaLabel = `Read multiple times, ${describeReadSources(sources)}`;
         break;
       }
       case READING_STATUS.ABSENT:

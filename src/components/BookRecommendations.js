@@ -1328,7 +1328,7 @@ const BookRecommendations = () => {
             sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
           >
             <Typography variant="h6" component="span">
-              {selectedStudent?.name} — Reading Preferences
+              {selectedStudent?.name}: reading preferences
             </Typography>
             <IconButton onClick={() => setPreferencesOpen(false)}>
               <CloseIcon />

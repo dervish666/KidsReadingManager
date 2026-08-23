@@ -389,7 +389,7 @@ const MetadataManagement = () => {
       if (runInBackground) {
         setIsEnriching(false);
         showSnackbar(
-          'Enrichment started in background — check Job History for progress',
+          'Enrichment started in the background. Check Job History for progress',
           'success'
         );
         loadJobs();
@@ -436,7 +436,7 @@ const MetadataManagement = () => {
       const data = await res.json();
 
       if (data.background) {
-        showSnackbar('Resumed in background — check Job History for progress', 'success');
+        showSnackbar('Resumed in the background. Check Job History for progress', 'success');
         loadJobs();
         return;
       }
@@ -620,7 +620,7 @@ const MetadataManagement = () => {
           onChange={(e) => setBookInfoAccessSecret(e.target.value)}
           placeholder={
             config.hasBookInfoAccessClientSecret
-              ? 'Secret configured — enter new secret to replace'
+              ? 'Secret configured. Enter a new secret to replace it'
               : 'Enter Access client secret'
           }
           helperText="Stored encrypted. Leave blank to keep the existing secret."
@@ -646,7 +646,7 @@ const MetadataManagement = () => {
           onChange={(e) => setHardcoverKey(e.target.value)}
           placeholder={
             config.hasHardcoverApiKey
-              ? 'Key configured — enter new key to replace'
+              ? 'Key configured. Enter a new key to replace it'
               : 'Enter API key'
           }
           helperText="Stored encrypted. Leave blank to keep existing key."
@@ -662,7 +662,7 @@ const MetadataManagement = () => {
           onChange={(e) => setGoogleBooksKey(e.target.value)}
           placeholder={
             config.hasGoogleBooksApiKey
-              ? 'Key configured — enter new key to replace'
+              ? 'Key configured. Enter a new key to replace it'
               : 'Enter API key'
           }
           helperText="Stored encrypted. Leave blank to keep existing key."
@@ -880,7 +880,7 @@ const MetadataManagement = () => {
                 color="text.secondary"
                 sx={{ fontFamily: '"DM Sans", sans-serif', mt: 0.5, display: 'block' }}
               >
-                {progressPercent}% — {progress.enrichedBooks ?? 0} enriched
+                {progressPercent}%, {progress.enrichedBooks ?? 0} enriched
                 {progress.errorCount > 0 ? `, ${progress.errorCount} errors` : ''}
               </Typography>
             )}
@@ -907,7 +907,7 @@ const MetadataManagement = () => {
                 color="text.secondary"
                 sx={{ fontFamily: '"DM Sans", sans-serif', mt: 1, display: 'block' }}
               >
-                Contributions — {formatProviderStats(progress.providerStats)}
+                Contributions: {formatProviderStats(progress.providerStats)}
               </Typography>
             )}
           </Box>
@@ -1067,7 +1067,7 @@ const MetadataManagement = () => {
                       <TableCell sx={{ fontFamily: '"DM Sans", sans-serif', fontSize: '0.85rem' }}>
                         {formatProviderStats(job.providerStats) ? (
                           <Tooltip
-                            title={`Contributions — ${formatProviderStats(job.providerStats)}`}
+                            title={`Contributions: ${formatProviderStats(job.providerStats)}`}
                             arrow
                           >
                             <Box

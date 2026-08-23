@@ -209,7 +209,7 @@ const Login = ({ onBackToLanding } = {}) => {
               textAlign: 'center',
             }}
           >
-            School staff — use your MyLogin account
+            School staff: use your MyLogin account
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>

@@ -39,8 +39,8 @@ export default function ClassAssignmentBanner() {
         </IconButton>
       }
     >
-      Your classes haven&apos;t been linked yet — this usually resolves overnight, or ask your
-      school administrator.
+      Your classes haven&apos;t been linked yet. This usually sorts itself out overnight, or ask
+      your school administrator.
     </Alert>
   );
 }

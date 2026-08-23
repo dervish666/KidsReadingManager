@@ -86,7 +86,7 @@ const DuplicateBooks = () => {
       const data = await res.json();
       setClusters((prev) => prev.filter((cl) => clusterKey(cl) !== key));
       showSnackbar(
-        `Merged ${data.booksMerged} duplicate${data.booksMerged === 1 ? '' : 's'} — ${data.sessionsRepointed} reading session${data.sessionsRepointed === 1 ? '' : 's'} kept`,
+        `Merged ${data.booksMerged} duplicate${data.booksMerged === 1 ? '' : 's'}, ${data.sessionsRepointed} reading session${data.sessionsRepointed === 1 ? '' : 's'} kept`,
         'success'
       );
     } catch (err) {
@@ -124,8 +124,8 @@ const DuplicateBooks = () => {
       }).length;
       showSnackbar(
         mismatches > 0
-          ? `Checked — ${mismatches} ISBN${mismatches === 1 ? '' : 's'} resolve to a different book; review before merging`
-          : 'Checked — every ISBN matches its book',
+          ? `Checked: ${mismatches} ISBN${mismatches === 1 ? '' : 's'} resolve to a different book; review before merging`
+          : 'Checked: every ISBN matches its book',
         mismatches > 0 ? 'warning' : 'success'
       );
     } catch (err) {
@@ -168,7 +168,7 @@ const DuplicateBooks = () => {
           </Button>
         </Box>
         <Typography variant="body2" color="text.secondary">
-          Duplicates in the shared global catalogue. Merging picks one book to keep — every reading
+          Duplicates in the shared global catalogue. Merging picks one book to keep. Every reading
           session, "currently reading" pointer, and school library link from the others is moved
           onto it, and any metadata the survivor is missing is filled in. The duplicates are then
           removed. This affects <strong>every school</strong>, so it's owner-only.
@@ -181,7 +181,7 @@ const DuplicateBooks = () => {
           icon={<CheckCircleIcon />}
           sx={{ borderRadius: 2, fontFamily: '"DM Sans", sans-serif' }}
         >
-          No duplicate books found — the catalogue is clean.
+          No duplicate books found. The catalogue is clean.
         </Alert>
       ) : (
         <>
@@ -311,7 +311,7 @@ const DuplicateBooks = () => {
                                 >
                                   {ok
                                     ? `✓ ISBN matches “${v.title}”`
-                                    : `⚠ ISBN resolves to “${v.title}”${v.author ? ` by ${v.author}` : ''} — differs from this book`}
+                                    : `⚠ ISBN resolves to “${v.title}”${v.author ? ` by ${v.author}` : ''}, which is a different book`}
                                 </Typography>
                               );
                             })()}

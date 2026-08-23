@@ -85,7 +85,7 @@ const QRCodeSheet = ({ classId, className, onClose }) => {
           variant="h6"
           sx={{ fontWeight: 700, color: '#2d5016', fontFamily: '"Nunito", sans-serif' }}
         >
-          Parent QR Codes — {className}
+          Parent QR codes: {className}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button

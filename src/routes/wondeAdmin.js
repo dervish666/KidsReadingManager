@@ -315,7 +315,7 @@ wondeAdminRouter.post('/token', requireOwner(), async (c) => {
   }
 
   if (!org.wonde_school_id) {
-    throw badRequestError('Organization has no wonde_school_id — cannot set token');
+    throw badRequestError('Organisation has no wonde_school_id, so the token cannot be set');
   }
 
   // Encrypt and store

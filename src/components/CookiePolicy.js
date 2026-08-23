@@ -278,7 +278,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>HttpOnly</strong> — cannot be read by JavaScript (protects against
+                    <strong>HttpOnly</strong>: cannot be read by JavaScript (protects against
                     cross-site scripting attacks)
                   </span>
                 }
@@ -289,7 +289,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Secure</strong> — transmitted only over HTTPS in production
+                    <strong>Secure</strong>: transmitted only over HTTPS in production
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -299,7 +299,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>SameSite=Strict</strong> — not sent with cross-site requests (protects
+                    <strong>SameSite=Strict</strong>: not sent with cross-site requests (protects
                     against cross-site request forgery)
                   </span>
                 }
@@ -310,8 +310,8 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Path</strong> — restricted to <code>/api/auth</code> (not sent with
-                    other requests)
+                    <strong>Path</strong>: restricted to <code>/api/auth</code> (not sent with other
+                    requests)
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -321,7 +321,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Cleared on logout</strong> — the cookie is removed when you sign out
+                    <strong>Cleared on logout</strong>: the cookie is removed when you sign out
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -420,7 +420,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>No analytics cookies</strong> — we do not use Google Analytics, Matomo,
+                    <strong>No analytics cookies</strong>: we do not use Google Analytics, Matomo,
                     or any similar analytics service
                   </span>
                 }
@@ -431,7 +431,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>No advertising cookies</strong> — we do not serve ads or use advertising
+                    <strong>No advertising cookies</strong>: we do not serve ads or use advertising
                     networks
                   </span>
                 }
@@ -442,7 +442,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>No tracking pixels</strong> — we do not use Facebook Pixel, LinkedIn
+                    <strong>No tracking pixels</strong>: we do not use Facebook Pixel, LinkedIn
                     Insight Tag, or similar tracking technologies
                   </span>
                 }
@@ -453,7 +453,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>No behavioural profiling</strong> — we do not track your browsing
+                    <strong>No behavioural profiling</strong>: we do not track your browsing
                     behaviour across other websites
                   </span>
                 }
@@ -464,7 +464,7 @@ const CookiePolicy = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>No third-party marketing cookies</strong> — we do not share data with
+                    <strong>No third-party marketing cookies</strong>: we do not share data with
                     third-party advertisers
                   </span>
                 }

@@ -118,7 +118,7 @@ const DpaConsentModal = () => {
             <li>Data is stored securely on Cloudflare infrastructure within the UK/EU</li>
             <li>
               AI recommendations (if enabled) send reading profiles (level, genres, history) to AI
-              providers — student names are never sent
+              providers. Student names are never sent
             </li>
             <li>You can request data export or erasure at any time</li>
             <li>The full DPA and privacy policy are available in your account documentation</li>
@@ -126,7 +126,7 @@ const DpaConsentModal = () => {
         </Box>
 
         <Typography variant="body2" color="text.secondary" paragraph>
-          Version {DPA_VERSION} —{' '}
+          Version {DPA_VERSION},{' '}
           <Link href="/privacy" target="_blank" rel="noopener">
             View full Privacy Policy
           </Link>

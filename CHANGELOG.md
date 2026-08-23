@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.124.2] - 2026-08-23
+
+The same pass that went over the landing page, applied to the rest of the writing in Tally. Nothing behaves differently. It just reads less like it came out of a machine.
+
+### Changed
+
+- **The help centre, the in-app help panel and the guided tours have been rewritten.** Fifty-four dashes were standing in for full stops in the help articles alone. The tour tooltips were in Title Case while every other heading in Tally is in sentence case, so they now match. A few of them also said very little: "Search for any student by name to find them quickly" is now "Type a name to jump straight to that student".
+- **Badge descriptions say what you did instead of praising you for it.** "An impressive reading achievement" and "A truly remarkable reading journey" told a child nothing. They now read "That's a lot of books" and "More books than most people manage in a year". The messages that pop up when a badge unlocks got the same treatment.
+- **Emails are shorter.** The welcome email said "Welcome to Tally Reading" in the subject line and then twice more in the body. The trial reminder signed off with "Helping every child become a confident reader", which is the sort of line every company has and nobody reads.
+- **British spelling where it had slipped.** Two screens said "organization".
+- **The AI now has house style rules.** The statistics summary and the book recommendation blurbs are written by an AI provider and shown to heads, teachers and parents, and nothing had ever told them how to write. Both prompts now ban the same tics: no dashes doing a full stop's job, no "not just X, but Y", and a list of words to avoid. Existing cached summaries are discarded so the next one is written to the new rules.
+
 ## [3.124.1] - 2026-08-23
 
 Nothing about how Tally works has changed. This is the marketing site, rewritten so it sounds like a person wrote it.

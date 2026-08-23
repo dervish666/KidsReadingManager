@@ -239,7 +239,7 @@ function buildRoundupPool(data) {
     pool.push({
       id: 'roundup-coming-up',
       label: 'Coming up',
-      text: `${next.name}${cd ? ` — ${cd}` : ''}.${next.blurb ? ` ${next.blurb}` : ''}`,
+      text: `${next.name}${cd ? `, ${cd}` : ''}.${next.blurb ? ` ${next.blurb}` : ''}`,
       source: null,
       link: next.link || null,
     });
@@ -250,7 +250,7 @@ function buildRoundupPool(data) {
     pool.push({
       id: 'roundup-birthday',
       label: 'Birthday watch',
-      text: `${bday.name}${cd ? ` — ${cd}` : ''}.${bday.blurb ? ` ${bday.blurb}` : ''}`,
+      text: `${bday.name}${cd ? `, ${cd}` : ''}.${bday.blurb ? ` ${bday.blurb}` : ''}`,
       source: bday.link && bday.link.includes('wikipedia') ? 'Wikipedia' : null,
       link: bday.link || null,
     });
@@ -347,7 +347,7 @@ export default function ReadingNewsPage({ data }) {
     return (
       <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4 }}>
         <Typography variant="body1" color="text.secondary">
-          No reading news just yet — check back soon.
+          No reading news just yet. Check back soon.
         </Typography>
       </Paper>
     );

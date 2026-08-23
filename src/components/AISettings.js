@@ -362,10 +362,10 @@ const AISettings = () => {
               modelFetchError
                 ? modelFetchError
                 : fetchedModels
-                  ? `✓ Key verified — ${fetchedModels.length} models loaded`
+                  ? `✓ Key verified, ${fetchedModels.length} models loaded`
                   : hasApiKey
                     ? 'Your API key is encrypted and stored securely.'
-                    : 'Enter your key — models will load automatically when you move focus away.'
+                    : 'Enter your key. Models load as soon as you click away.'
             }
             error={Boolean(modelFetchError)}
             sx={{ mb: 3 }}

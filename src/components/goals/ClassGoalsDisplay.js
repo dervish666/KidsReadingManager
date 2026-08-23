@@ -110,11 +110,11 @@ function ProgressBar({ goal }) {
                 color: '#8B7E6A',
                 fontSize: 12,
                 fontStyle: 'italic',
-                ml: 0.5,
+                ml: 1,
                 display: { xs: 'none', md: 'block' },
               }}
             >
-              — {config.description}
+              {config.description}
             </Typography>
           )}
         </Box>

@@ -17,7 +17,7 @@ const StudentBooksRead = ({ selectedStudent, loading, sessions, booksMap }) => {
   return (
     <Paper sx={{ p: 2 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>
-        Books Read — {selectedStudent.name}
+        Books read: {selectedStudent.name}
       </Typography>
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>

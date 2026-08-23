@@ -149,7 +149,7 @@ export default function BaselineReadsDialog({ open, onClose, initialClassId }) {
             >
               {activeClasses.map((cls) => (
                 <MenuItem key={cls.id} value={cls.id}>
-                  {cls.teacherName ? `${cls.name} — ${cls.teacherName}` : cls.name}
+                  {cls.teacherName ? `${cls.name}, ${cls.teacherName}` : cls.name}
                 </MenuItem>
               ))}
               {hasUnassigned && (

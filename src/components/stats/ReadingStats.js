@@ -141,7 +141,7 @@ const ReadingStats = () => {
     if (!stats) return;
 
     const dateRange = termDateRange
-      ? `${new Date(termDateRange.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} — ${new Date(termDateRange.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      ? `${new Date(termDateRange.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} to ${new Date(termDateRange.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
       : null;
 
     await generateStatsPDF({

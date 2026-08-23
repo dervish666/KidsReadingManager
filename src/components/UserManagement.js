@@ -406,7 +406,7 @@ const UserManagement = () => {
         </Button>
       </Box>
       <Typography variant="body1" color="text.secondary" paragraph>
-        Manage users in your organization.
+        Manage users in your organisation.
       </Typography>
 
       {error && (

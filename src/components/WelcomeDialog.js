@@ -72,7 +72,7 @@ export default function WelcomeDialog() {
         </Typography>
 
         <Typography sx={{ color: 'text.secondary', mb: 3 }}>
-          Hello {user.name} &mdash; {hasClasses ? "you're all set up." : 'nearly there.'}
+          Hello {user.name}, {hasClasses ? "you're all set up." : 'nearly there.'}
         </Typography>
 
         {/* Class info or warning card */}
@@ -135,8 +135,8 @@ export default function WelcomeDialog() {
               </Typography>
             </Box>
             <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem', mb: 1 }}>
-              Your classes haven&apos;t been connected to your account yet. This usually resolves
-              automatically overnight, or your school administrator can set it up.
+              Your classes haven&apos;t been linked to your account yet. This usually sorts itself
+              out overnight, or your school administrator can set it up now.
             </Typography>
             <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
               In the meantime, you can browse all students in the school.
@@ -147,7 +147,7 @@ export default function WelcomeDialog() {
         {/* What you can do */}
         <Box sx={{ textAlign: 'left', mb: 3.5 }}>
           <Typography sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.85rem', mb: 1.5 }}>
-            Here&apos;s what you can do:
+            What you can do here:
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {[
@@ -180,7 +180,7 @@ export default function WelcomeDialog() {
             textTransform: 'none',
           }}
         >
-          Get Started
+          Get started
         </Button>
       </DialogContent>
     </Dialog>

@@ -231,7 +231,7 @@ const QuickReadingView = ({
                               ? READ_SOURCE_COLORS[sources[0]].dark
                               : 'text.primary';
                           bgOverride = sourcesBackground(sources, 'soft');
-                          cellLabel = `Read — ${describeReadSources(sources)}`;
+                          cellLabel = `Read, ${describeReadSources(sources)}`;
                           break;
                         }
                         case READING_STATUS.MULTIPLE: {
@@ -242,7 +242,7 @@ const QuickReadingView = ({
                               ? READ_SOURCE_COLORS[sources[0]].dark
                               : 'text.primary';
                           bgOverride = sourcesBackground(sources, 'soft');
-                          cellLabel = `Read ${prevStatus.count} times — ${describeReadSources(sources)}`;
+                          cellLabel = `Read ${prevStatus.count} times, ${describeReadSources(sources)}`;
                           break;
                         }
                         case READING_STATUS.ABSENT:
@@ -316,7 +316,7 @@ const QuickReadingView = ({
                           }}
                           title={
                             status === READING_STATUS.READ && readSources
-                              ? `Read — ${describeReadSources(readSources)}`
+                              ? `Read, ${describeReadSources(readSources)}`
                               : undefined
                           }
                           aria-label={`Mark ${student.name} as read`}
@@ -338,7 +338,7 @@ const QuickReadingView = ({
                               sx={{ ...numBtnSx, ...(isActive && sourceFillSx) }}
                               title={
                                 isActive && readSources
-                                  ? `Read ${count} times — ${describeReadSources(readSources)}`
+                                  ? `Read ${count} times, ${describeReadSources(readSources)}`
                                   : undefined
                               }
                               aria-label={`Mark ${student.name} as read ${n} times`}

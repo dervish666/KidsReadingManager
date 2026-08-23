@@ -24,7 +24,7 @@ import * as d1Provider from './d1Provider.js';
 async function createProvider(env = null) {
   if (!env || !env.READING_MANAGER_DB) {
     throw new Error(
-      'D1 binding READING_MANAGER_DB is required — for local development run `npm run seed:local` once, then `npm run dev`'
+      'D1 binding READING_MANAGER_DB is required. For local development run `npm run seed:local` once, then `npm run dev`'
     );
   }
 

@@ -14,7 +14,7 @@ function tickerLines(data, liveEvents) {
   for (const e of data.events || []) {
     if (!e?.name) continue;
     const when = countdownLabel(e.date) || shortDate(e.date);
-    lines.push(when ? `${e.name} — ${when}` : e.name);
+    lines.push(when ? `${e.name}, ${when}` : e.name);
   }
   return lines;
 }

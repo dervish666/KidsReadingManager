@@ -11,9 +11,9 @@
 
 // ── Key Stage Resolution ────────────────────────────────────────────────────
 
-// Delegates to the shared, format-robust resolver. The old hardcoded map keyed
+// Delegates to the shared, format-tolerant resolver. The old hardcoded map keyed
 // on "Y2"/"Reception" only, but year groups actually arrive as "Year 2" (demo),
-// "2"/"R" (Wonde), or empty (registration-groups schools) — so it silently
+// "2"/"R" (Wonde), or empty (registration-groups schools), so it silently
 // resolved everyone to LowerKS2. yearGroupToKeyStage handles every shape; pass
 // `year_group || classNameToYearGroup(className)` so empty year groups still
 // resolve from the class name.
@@ -35,8 +35,8 @@ export const BADGE_DEFINITIONS = [
     name: 'Bookworm',
     tier: 'bronze',
     category: 'volume',
-    description: 'Read your first books',
-    unlockMessage: "You've started your reading journey! Your garden is sprouting.",
+    description: 'Your first shelf of books',
+    unlockMessage: "You're off! Your garden has started sprouting.",
     icon: 'bookworm',
     keyStageThresholds: { KS1: 5, LowerKS2: 8, UpperKS2: 10 },
     evaluate: (stats, ctx) =>
@@ -51,7 +51,7 @@ export const BADGE_DEFINITIONS = [
     name: 'Bookworm',
     tier: 'silver',
     category: 'volume',
-    description: 'A growing collection of books read',
+    description: 'A proper stack of books now',
     unlockMessage: 'Your reading garden is flourishing! So many stories explored.',
     icon: 'bookworm',
     keyStageThresholds: { KS1: 15, LowerKS2: 25, UpperKS2: 30 },
@@ -67,8 +67,8 @@ export const BADGE_DEFINITIONS = [
     name: 'Bookworm',
     tier: 'gold',
     category: 'volume',
-    description: 'An impressive reading achievement',
-    unlockMessage: 'What an incredible reader you are! Your garden is blooming beautifully.',
+    description: "That's a lot of books",
+    unlockMessage: 'Look at all those books. Your garden is in full bloom.',
     icon: 'bookworm',
     keyStageThresholds: { KS1: 30, LowerKS2: 50, UpperKS2: 60 },
     evaluate: (stats, ctx) =>
@@ -83,8 +83,8 @@ export const BADGE_DEFINITIONS = [
     name: 'Bookworm',
     tier: 'star',
     category: 'volume',
-    description: 'A truly remarkable reading journey',
-    unlockMessage: 'A star reader! Your reading garden is a wonder to behold.',
+    description: 'More books than most people manage in a year',
+    unlockMessage: 'A star reader. Not many gardens look like yours.',
     icon: 'bookworm',
     keyStageThresholds: { KS1: 50, LowerKS2: 80, UpperKS2: 100 },
     evaluate: (stats, ctx) =>
@@ -101,7 +101,7 @@ export const BADGE_DEFINITIONS = [
     name: 'Time Traveller',
     tier: 'bronze',
     category: 'volume',
-    description: 'Minutes spent reading',
+    description: 'Your first few hours of reading',
     unlockMessage: 'All that reading time is paying off! Your garden is growing.',
     icon: 'clock',
     keyStageThresholds: { KS1: 200, LowerKS2: 400, UpperKS2: 600 },
@@ -117,7 +117,7 @@ export const BADGE_DEFINITIONS = [
     name: 'Time Traveller',
     tier: 'silver',
     category: 'volume',
-    description: 'A dedicated reader',
+    description: 'Hours and hours of reading',
     unlockMessage: "You've spent so much time with wonderful stories!",
     icon: 'clock',
     keyStageThresholds: { KS1: 600, LowerKS2: 1200, UpperKS2: 1800 },
@@ -133,7 +133,7 @@ export const BADGE_DEFINITIONS = [
     name: 'Time Traveller',
     tier: 'gold',
     category: 'volume',
-    description: 'A truly committed reader',
+    description: 'More than a day of reading, added up',
     unlockMessage: 'What a time traveller! Hours upon hours of reading adventures.',
     icon: 'clock',
     keyStageThresholds: { KS1: 1500, LowerKS2: 3000, UpperKS2: 5000 },
@@ -204,7 +204,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'single',
     category: 'milestone_batch',
     description: 'Read 3 or more books by the same author',
-    unlockMessage: "You found an author you love! That's a special connection.",
+    unlockMessage: 'You found an author you love. Now go and read the rest of them.',
     icon: 'flower',
     evaluate: (_stats, ctx) => {
       if (!ctx.authorBookCounts) return false;
@@ -224,7 +224,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'bronze',
     category: 'exploration',
     description: 'Read books from 3 different genres',
-    unlockMessage: 'Three genres explored! Your reading world is expanding.',
+    unlockMessage: "Three different kinds of book. You're branching out.",
     icon: 'compass',
     evaluate: (stats) => (stats.genresRead?.length || 0) >= 3,
     progress: (stats) => ({ current: stats.genresRead?.length || 0, target: 3 }),
@@ -259,7 +259,7 @@ export const BADGE_DEFINITIONS = [
     tier: 'single',
     category: 'exploration',
     description: 'Read both fiction and non-fiction books',
-    unlockMessage: 'Stories and facts — you enjoy both! A well-rounded reader.',
+    unlockMessage: "Stories and facts, and you like both. That's rarer than you think.",
     icon: 'compass',
     evaluate: (stats) => stats.fictionCount >= 1 && stats.nonfictionCount >= 1,
     progress: (stats) => ({

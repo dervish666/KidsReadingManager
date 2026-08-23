@@ -396,7 +396,7 @@ const SchoolManagement = () => {
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="body1" color="text.secondary">
-          Manage schools and organizations in the system.
+          Manage schools and organisations in the system.
         </Typography>
         <Button
           variant="outlined"

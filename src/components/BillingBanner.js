@@ -28,8 +28,8 @@ export default function BillingBanner() {
   if (billing.status === 'unknown') {
     return (
       <Alert severity="warning" sx={{ mb: 2 }}>
-        We couldn&apos;t check your billing status just now — if you were expecting a billing
-        notice, refresh the page or check Settings → Billing.
+        We couldn&apos;t check your billing status just now. If you were expecting a billing notice,
+        refresh the page or check Settings → Billing.
       </Alert>
     );
   }

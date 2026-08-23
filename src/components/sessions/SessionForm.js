@@ -369,7 +369,7 @@ const SessionForm = () => {
               body: JSON.stringify({ likes: newLikes, dislikes: newDislikes }),
             }).catch(() => {
               // The session itself saved — only the preference write failed.
-              setSnackbarMessage('Session saved, but the book preference didn’t save — try again');
+              setSnackbarMessage('Session saved, but the book preference didn’t. Try again');
               setSnackbarOpen(true);
             });
           }
@@ -936,7 +936,7 @@ const SessionForm = () => {
               mb: 1.5,
             }}
           >
-            Books Read — {selectedStudent?.name}
+            Books read: {selectedStudent?.name}
           </Typography>
           {historyLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>

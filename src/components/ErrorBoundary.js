@@ -56,8 +56,7 @@ class ErrorBoundary extends React.Component {
               Something went wrong
             </Typography>
             <Typography variant="body1" sx={{ color: '#666666', mb: 3, lineHeight: 1.6 }}>
-              Don't worry — your data is safe. Try refreshing the page, or head back to the home
-              screen.
+              Your data is safe. Try refreshing the page, or head back to the home screen.
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>

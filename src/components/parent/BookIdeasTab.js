@@ -14,8 +14,7 @@ const BookIdeasTab = ({ firstName, bookIdeas, loading, onOpenDetail }) => (
       Book ideas for {firstName}
     </Typography>
     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-      Great next books for {firstName} to enjoy — ones to borrow from school and ideas to discover
-      together.
+      Next books for {firstName}: ones to borrow from school, and ideas to look out for together.
     </Typography>
 
     {loading ? (
@@ -56,7 +55,7 @@ const BookIdeasTab = ({ firstName, bookIdeas, loading, onOpenDetail }) => (
               variant="caption"
               sx={{ ...sectionTitleSx, display: 'block', mb: 1, fontSize: '0.8rem' }}
             >
-              📖 From the school library — ready to borrow
+              📖 From the school library, ready to borrow
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {bookIdeas.library.map((rec, i) => (

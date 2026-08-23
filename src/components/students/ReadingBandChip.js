@@ -44,7 +44,7 @@ export function ReadingBandProgress({ readsCount = 0, readsPerBand = 20, bands }
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
         {band.atTop
-          ? `${readsCount} reads this year — top band reached! 🎉`
+          ? `${readsCount} reads this year. Top band reached! 🎉`
           : `${readsCount} reads this year · ${band.toNext} to ${getBandByIndex(band.index + 1, bands).name}`}
       </Typography>
     </Box>

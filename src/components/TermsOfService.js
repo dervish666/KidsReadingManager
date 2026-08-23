@@ -315,7 +315,7 @@ const TermsOfService = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Owner</strong> — full system access across all organisations
+                    <strong>Owner</strong>: full system access across all organisations
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -325,7 +325,7 @@ const TermsOfService = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Admin</strong> — organisation-level management, user and teacher
+                    <strong>Admin</strong>: organisation-level management, user and teacher
                     administration
                   </span>
                 }
@@ -336,7 +336,7 @@ const TermsOfService = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Teacher</strong> — manages students, classes, and reading sessions
+                    <strong>Teacher</strong>: manages students, classes, and reading sessions
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -346,7 +346,7 @@ const TermsOfService = () => {
               <ListItemText
                 primary={
                   <span>
-                    <strong>Read-only</strong> — view-only access to data within their organisation
+                    <strong>Read-only</strong>: view-only access to data within their organisation
                   </span>
                 }
                 primaryTypographyProps={{ color: 'text.primary', lineHeight: 1.75 }}
@@ -436,7 +436,7 @@ const TermsOfService = () => {
           <BodyText>
             The Service processes data relating to children. We comply with the UK GDPR and the
             ICO&rsquo;s Age Appropriate Design Code (Children&rsquo;s Code) in our handling of this
-            data. Pupils do not access the Service directly — all interactions are through school
+            data. Pupils do not access the Service directly. All interactions are through school
             staff.
           </BodyText>
 

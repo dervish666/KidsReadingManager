@@ -53,7 +53,7 @@ const SECTIONS = [
 /** Flatten a summary into something worth pasting into a report. */
 function summaryToText(summary, scope) {
   const lines = [];
-  if (scope) lines.push(`Reading summary — ${scope.classLabel}, ${scope.periodLabel}`, '');
+  if (scope) lines.push(`Reading summary: ${scope.classLabel}, ${scope.periodLabel}`, '');
   if (summary.headline) lines.push(summary.headline, '');
   for (const { key, title } of SECTIONS) {
     const items = summary[key] || [];
@@ -162,7 +162,7 @@ const AiSummaryPanel = ({ scopeKey, scopeLabel, statsLoading, buildPayload, onCl
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('Could not copy to the clipboard — your browser blocked it.');
+      setError('Could not copy to the clipboard. Your browser blocked it.');
     }
   };
 
@@ -233,7 +233,7 @@ const AiSummaryPanel = ({ scopeKey, scopeLabel, statsLoading, buildPayload, onCl
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 3 }}>
           <CircularProgress size={24} />
           <Typography variant="body2" color="text.secondary">
-            Reading through the figures — this takes a few seconds.
+            Reading through the figures. This takes a few seconds.
           </Typography>
         </Box>
       )}
@@ -241,7 +241,7 @@ const AiSummaryPanel = ({ scopeKey, scopeLabel, statsLoading, buildPayload, onCl
       {!loading && stale && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, flexWrap: 'wrap' }}>
           <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
-            The figures have changed{scopeLabel ? ` — now showing ${scopeLabel}.` : '.'}
+            The figures have changed{scopeLabel ? `, now showing ${scopeLabel}.` : '.'}
           </Typography>
           <Button
             variant="contained"

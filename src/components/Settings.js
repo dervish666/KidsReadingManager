@@ -625,7 +625,7 @@ const Settings = () => {
           </Box>
           <Typography variant="body2" color="text.secondary" paragraph>
             The optional “How did they read today?” toggles teachers can tick when logging a reading
-            session. Switch any off, rename them, or add your own — up to six.
+            session. Switch any off, rename them, or add your own, up to six.
           </Typography>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>

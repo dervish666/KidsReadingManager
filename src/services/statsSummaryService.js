@@ -27,7 +27,7 @@ import { tagUserInput, callProviderRaw } from './aiService.js';
 import { describeCalendarStatus } from '../utils/schoolCalendar.js';
 
 /** Bump when the prompt or the output contract changes — it keys the cache. */
-export const STATS_SUMMARY_PROMPT_VERSION = 'v2';
+export const STATS_SUMMARY_PROMPT_VERSION = 'v3';
 
 const DAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_LIST_ITEMS = 5;
@@ -290,16 +290,18 @@ BOOKS
 - Least liked: ${formatTitleList(safe.leastLikedBooks)}
 
 YOUR TASK
-Write a briefing that tells the head something they would not get from glancing at the numbers. Look for relationships between figures — for example a home/school imbalance, a weekday-to-weekend collapse, a gap between the longest-ever and longest-current streak (streaks have been broken), a healthy average hiding a large group with no sessions, or a week-on-week change that contradicts the headline totals.
+Write a briefing that tells the head something they would not get from glancing at the numbers. Look for relationships between figures, for example a home/school imbalance, a weekday-to-weekend collapse, a gap between the longest-ever and longest-current streak (streaks have been broken), a healthy average hiding a large group with no sessions, or a week-on-week change that contradicts the headline totals.
 
 RULES
-- British English. Plain, warm, and direct — a colleague talking, not a consultant.
+- British English. Plain, warm and direct: a colleague talking, not a consultant.
+- No em dashes. End the sentence or use a comma. No "not just X, but Y". No stock openers like "it's worth noting".
+- Avoid: delve, leverage, robust, comprehensive, crucial, showcase, foster, landscape, journey, insights. Use the plain word.
 - Use only the figures above. Never invent a number, a pupil, a class or a trend you cannot see.
 - Quote the actual numbers when you make a point.
 - Read every recent-activity figure against the school calendar above before you comment on it. A quiet week in a holiday is not a problem; a quiet week in term time is.
 - Do not claim cause. "Home reading is well below school reading" is fine; "parents are disengaged" is not.
 - If a figure is small enough that the pattern could be noise, say so rather than over-reading it.
-- No pupil names — you do not have any, and you must not make any up.
+- No pupil names. You do not have any, and you must not make any up.
 - Keep every point to one or two sentences.
 
 OUTPUT

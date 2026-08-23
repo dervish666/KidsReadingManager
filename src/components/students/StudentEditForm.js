@@ -421,7 +421,7 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
             {readBooks.length > 0 && <Chip label={readBooks.length} size="small" sx={{ ml: 1 }} />}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-            Tap a thumb to record whether they enjoyed each book — this fills in the Likes and
+            Tap a thumb to record whether they enjoyed each book. This fills in the Likes and
             Dislikes below and feeds their recommendations.
           </Typography>
           {readBooks.length === 0 ? (
@@ -570,8 +570,8 @@ const StudentEditForm = forwardRef(function StudentEditForm({ student, onSave, o
                 <Typography variant="subtitle2">AI Book Recommendations</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {aiOptOut
-                    ? "Disabled — this student's reading data will not be sent to AI providers."
-                    : 'Enabled — AI will generate personalised book recommendations for this student.'}
+                    ? "Disabled. This student's reading data will not be sent to AI providers."
+                    : 'Enabled. AI will generate personalised book recommendations for this student.'}
                 </Typography>
               </Box>
             }

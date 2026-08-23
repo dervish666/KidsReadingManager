@@ -53,7 +53,7 @@ export function useEnrichmentPolling(fetchWithAuth, options = {}) {
             }
             // Retry up to maxRetries on transient errors (e.g. Worker timeout)
             if (consecutiveErrors >= maxRetries) {
-              onError?.('Enrichment stopped after repeated errors — use Resume to continue');
+              onError?.('Enrichment stopped after repeated errors. Use Resume to continue');
               break;
             }
             // Wait before retrying

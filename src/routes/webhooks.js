@@ -153,7 +153,7 @@ webhooksRouter.post('/wonde', async (c) => {
           tags: { wonde: 'school-approved' },
           extra: { wondeSchoolId: body.school_id, status: err.status, message: err.message },
         });
-        return c.json({ error: 'Could not reach Wonde — please retry' }, 503);
+        return c.json({ error: 'Could not reach Wonde, please retry' }, 503);
       }
 
       if (!schoolDetails || schoolDetails.id !== body.school_id) {

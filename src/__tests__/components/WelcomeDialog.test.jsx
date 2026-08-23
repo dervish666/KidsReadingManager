@@ -73,7 +73,7 @@ describe('WelcomeDialog', () => {
     render(<WelcomeDialog />, { wrapper: createWrapper(auth) });
     expect(screen.getByText('Welcome to Tally Reading!')).toBeInTheDocument();
     expect(screen.getByText(/nearly there/i)).toBeInTheDocument();
-    expect(screen.getByText(/classes haven't been connected/i)).toBeInTheDocument();
+    expect(screen.getByText(/classes haven't been linked/i)).toBeInTheDocument();
   });
 
   it('renders no-class fallback when assignedClassIds is undefined', () => {

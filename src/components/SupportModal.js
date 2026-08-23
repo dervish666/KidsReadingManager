@@ -63,7 +63,7 @@ const PAGE_HELP = {
       intro="The Students page shows everyone in your selected class with their current reading status."
       bullets={[
         'Colour coding: green = read recently, yellow = needs attention, red = overdue. Thresholds are set in Settings.',
-        'The Priority Reading List orders students by who needs reading the most — sorted by days since their last session. These students also appear at the top of the School Reading page, so a teacher can plan ahead and hand the device to a colleague who will know exactly who to read with next.',
+        'The Priority Reading List orders students by who needs reading the most, sorted by days since their last session. These students also appear at the top of the School Reading page, so a teacher can plan ahead and hand the device to a colleague who will know exactly who to read with next.',
         'Tap a student card to view their reading history, edit their details, or see badge progress.',
       ]}
     />
@@ -73,7 +73,7 @@ const PAGE_HELP = {
       intro="Record a reading session for any student in a few taps."
       bullets={[
         'Select the student, then optionally search for or scan the book they read.',
-        'Use the assessment slider to record how independently they read — from Needing Help to Independent.',
+        'Use the assessment slider to record how independently they read, from Needing Help to Independent.',
         "Add a note if there's anything worth remembering about the session.",
         "Sessions save immediately and update the student's status and streak.",
       ]}
@@ -84,7 +84,7 @@ const PAGE_HELP = {
       intro="The Home Reading Register lets you log the whole class at once in a grid view."
       bullets={[
         'Tap a cell to mark a student as read, absent, or multiple reads for that day.',
-        "The date range controls let you review or backfill sessions across several days — useful for marking up a week's worth at once.",
+        'The date range controls let you review or backfill sessions across several days, which is useful when a week of diaries arrives at once.',
         'Daily totals appear in the footer so you can see at a glance how many students read each day.',
       ]}
     />
@@ -94,7 +94,7 @@ const PAGE_HELP = {
       intro="The Stats tab gives you a class-wide view of reading activity."
       bullets={[
         'Overview: active reader counts, reading days, and session totals with trend indicators.',
-        'Frequency: which days of the week your class reads most — useful for spotting patterns.',
+        'Frequency: which days of the week your class reads most.',
         'Streaks: leaderboard showing students with the longest current streaks.',
         "Needs Attention: a list of students who haven't read recently, sorted by urgency.",
       ]}
@@ -102,32 +102,32 @@ const PAGE_HELP = {
   ),
   Achievements: (
     <HelpBullets
-      intro="Students earn badges automatically as they read — no manual input needed."
+      intro="Students earn badges as they read, with nothing for you to award by hand."
       bullets={[
         'Milestones: First Finish (first book), Series Finisher (3+ books by same author).',
         'Volume: Bookworm (books read) and Time Traveller (minutes read), each with four tiers. Targets scale by year group so KS1 and KS2 are measured fairly.',
         'Consistency: Steady Reader (3 days in a week), Week Warrior (every day in a week), Monthly Marvel (4+ days every week for a month).',
         'Exploration: Genre Explorer (3, 5, or 7 genres), Fiction & Fact (both fiction and non-fiction).',
-        'Select a class to see the class garden — it grows through Seedling → Sprout → Bloom → Full Garden as your class completes its term goals.',
+        'Select a class to see the class garden. It grows through Seedling → Sprout → Bloom → Full Garden as your class completes its term goals.',
       ]}
     />
   ),
   Recommend: (
     <HelpBullets
-      intro="Recommendations searches your school's own book library to find the best match for a student — no AI required."
+      intro="Recommendations searches your school's own book library to find the best match for a student, with no AI involved."
       bullets={[
         'Choose a focus mode: Balanced (mix of levels), Consolidation (confidence-building reads at or below level), or Challenge (stretch reads above level).',
         'All results come from books already in your library, so every suggestion is something you actually have on the shelf.',
-        "AI suggestions are a separate optional add-on — useful for broader recommendations beyond your library. Schools can bring their own API key or purchase the add-on. Get in touch if you'd like to know more.",
+        "AI suggestions are a separate add-on, for picks beyond your own shelves. Schools can bring their own API key or purchase the add-on. Get in touch if you'd like to know more.",
       ]}
     />
   ),
   Books: (
     <HelpBullets
-      intro="The book library is shared across your school — books added by any teacher are visible to all."
+      intro="The book library is shared across your school, so a book added by any teacher is visible to all."
       bullets={[
         'Add a single book manually, or use the barcode scanner on a phone or tablet to add books by scanning the ISBN.',
-        'Admins can bulk import books from a CSV exported from your library management system — a great way to get your full catalogue in quickly. Get in touch if you need help preparing or importing a CSV.',
+        'Admins can bulk import books from a CSV exported from your library management system, which is the quickest way to get a full catalogue in place. Get in touch if you need help preparing or importing a CSV.',
         'Each book can be tagged with a genre, which powers the Genre Explorer badge and AI recommendations.',
       ]}
     />
@@ -137,7 +137,7 @@ const PAGE_HELP = {
       intro="Settings control how Tally Reading categorises student reading activity."
       bullets={[
         'Reading Status Durations: how many days before a student moves from green (recently read) to yellow (needs attention) to red (overdue).',
-        'Streak Settings: the grace period lets students miss a day without breaking their streak — useful for weekends.',
+        "Streak Settings: the grace period lets students miss a day without breaking their streak, so a weekend doesn't undo a good week.",
         "Term Dates: set your school's term dates and half-terms for the academic year. These are used to calculate class goal progress and keep streak thresholds accurate across holidays.",
       ]}
     />

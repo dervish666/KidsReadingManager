@@ -109,7 +109,7 @@ const Eyebrow = () => (
         fontFamily: '"DM Sans", sans-serif',
       }}
     >
-      Tally Reading — Legal &amp; Compliance
+      Tally Reading: legal &amp; compliance
     </Typography>
   </Box>
 );

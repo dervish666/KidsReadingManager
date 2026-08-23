@@ -279,7 +279,7 @@ const BookMetadataSettings = () => {
                 color="text.secondary"
                 sx={{ fontFamily: '"DM Sans", sans-serif', mt: 0.5, display: 'block' }}
               >
-                {progressPercent}% — {progress.enrichedBooks ?? 0} enriched
+                {progressPercent}%, {progress.enrichedBooks ?? 0} enriched
                 {progress.errorCount > 0 ? `, ${progress.errorCount} errors` : ''}
               </Typography>
             )}

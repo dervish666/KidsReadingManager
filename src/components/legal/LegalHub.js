@@ -93,7 +93,7 @@ const LegalHub = () => {
       <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.7 }}>
         Everything in one place. These are the policies and data-protection documents for Tally
         Reading (operated by Scratch IT LTD). Schools and their data protection officers are welcome
-        to reference and link to any of them — for example, when completing a DPIA or supplier
+        to reference and link to any of them, for example when completing a DPIA or supplier
         due-diligence assessment.
       </Typography>
 

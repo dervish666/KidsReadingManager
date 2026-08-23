@@ -119,7 +119,7 @@ export default function InstallAppNudge() {
       {canPromptInstall ? (
         <>
           <span>
-            <strong>Put Tally on your home screen</strong> — full-screen, one tap away.
+            <strong>Put Tally on your home screen</strong>: full-screen, one tap away.
           </span>
           <Button
             variant="contained"
@@ -133,7 +133,7 @@ export default function InstallAppNudge() {
         </>
       ) : (
         <span>
-          <strong>Put Tally on your home screen</strong> — tap the{' '}
+          <strong>Put Tally on your home screen</strong>: tap the{' '}
           <IosShareIcon fontSize="small" sx={{ verticalAlign: 'text-bottom' }} aria-label="Share" />{' '}
           Share button in Safari, then choose &lsquo;Add to Home Screen&rsquo;.
         </span>

@@ -42,7 +42,7 @@ export default function BandCelebration({ bandUp, studentName, onClose }) {
           variant="body2"
           sx={{ color: '#5D6B4A', mt: 2, maxWidth: 250, mx: 'auto', lineHeight: 1.5 }}
         >
-          Now on the <strong>{to.name}</strong> band — keep it up!
+          Now on the <strong>{to.name}</strong> band. Keep it up!
         </Typography>
         <Button
           onClick={onClose}

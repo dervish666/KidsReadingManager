@@ -188,7 +188,7 @@ aiSummaryRouter.post('/stats/ai-summary', requireAdmin(), async (c) => {
         suggestedActions: [
           reason === 'cohort_too_small'
             ? `Summaries need at least ${MIN_COHORT_SIZE} pupils in view, so the figures describe a group rather than one child. Widen the class filter and try again.`
-            : 'Log a few reading sessions, then come back — the summary needs some activity to describe.',
+            : 'Log a few reading sessions, then come back. The summary needs some activity to describe.',
         ],
         notes: [],
       },

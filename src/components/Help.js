@@ -47,7 +47,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import TallyLogo from './TallyLogo';
 
 /* ==================================================================
-   Palette — cozy bookshelf accents
+   Palette: cozy bookshelf accents
 ================================================================== */
 
 const ACCENTS = {
@@ -184,7 +184,7 @@ const HelpTable = ({ headers, rows }) => (
 );
 
 /* ==================================================================
-   Content — categories, articles, FAQs
+   Content: categories, articles, FAQs
 ================================================================== */
 
 const CATEGORIES = [
@@ -204,11 +204,11 @@ const CATEGORIES = [
             <P>
               Your school's administrator account is set up for you. You'll receive an email with
               your login details and a link to sign in. On first login you'll be prompted to change
-              your password — it needs to be at least 8 characters.
+              your password. It needs to be at least 8 characters.
             </P>
             <P last>
               If your school uses MyLogin single sign-on (SSO), sign in with your existing school
-              credentials instead — there's no separate password to remember.
+              credentials instead. There is no second password to remember.
             </P>
           </>
         ),
@@ -260,7 +260,7 @@ const CATEGORIES = [
             />
             <P last>
               If your school is connected to Wonde, classes and teacher assignments come from your
-              MIS automatically — no need to create them by hand.
+              MIS automatically, so there is nothing to create by hand.
             </P>
           </>
         ),
@@ -284,8 +284,7 @@ const CATEGORIES = [
               ]}
             />
             <P last>
-              Wonde-connected schools don't need to do this — students sync automatically from your
-              MIS each night.
+              Wonde-connected schools can skip this. Students sync from your MIS each night.
             </P>
           </>
         ),
@@ -308,7 +307,7 @@ const CATEGORIES = [
             <P>
               The <strong>School Reading</strong> page records a one-to-one session in a few taps:
               pick the student, search for (or scan) the book they read, then use the assessment
-              slider to record how independently they read — from Needing Help to Independent. Add a
+              slider to record how independently they read, from Needing Help to Independent. Add a
               thumbs up or down for enjoyment and a note if there's anything worth remembering.
             </P>
             <P last>
@@ -331,9 +330,9 @@ const CATEGORIES = [
             </P>
             <P last>
               The date range controls (This Week, Last Week, Last Month, or a custom range) let you
-              review or backfill several days at once — handy for marking up a week's worth of
-              reading diaries in one sitting. Daily totals appear in the footer so you can see at a
-              glance how many students read each day.
+              review or backfill several days at once, so a week's worth of reading diaries can go
+              in during one sitting. Daily totals appear in the footer so you can see at a glance
+              how many students read each day.
             </P>
           </>
         ),
@@ -350,7 +349,7 @@ const CATEGORIES = [
             </P>
             <P last>
               The <strong>Priority Reading List</strong> orders students by who needs reading the
-              most — sorted by days since their last session. These students also appear at the top
+              most, sorted by days since their last session. These students also appear at the top
               of the School Reading page, so anyone picking up the device knows exactly who to read
               with next.
             </P>
@@ -363,9 +362,9 @@ const CATEGORIES = [
         keywords: 'timeline history profile edit details badges progress',
         body: (
           <P last>
-            Tap any student card to open their profile — you'll see their full reading history,
-            badge progress, and current streak, and you can edit their details or share a parent
-            link from the same place.
+            Tap any student card to open their profile. You'll see their full reading history, badge
+            progress, and current streak, and you can edit their details or share a parent link from
+            the same place.
           </P>
         ),
       },
@@ -391,15 +390,15 @@ const CATEGORIES = [
             <Steps
               ordered={false}
               items={[
-                'Auto-detect column headers (Title, Author, ISBN, etc.) — you can override manually',
+                'Auto-detect column headers (Title, Author, ISBN, etc.), with manual override',
                 'Match exact duplicates and link them automatically to the shared catalogue',
                 'Flag close matches for you to review one by one',
                 'Create new entries for any books not already in the catalogue',
               ]}
             />
             <P last>
-              ISBNs are the most reliable way to match — if your CSV has them, duplicate detection
-              is very accurate. Get in touch if you need help preparing a CSV.
+              ISBNs are the most reliable way to match. If your CSV has them, duplicate detection is
+              very accurate. Get in touch if you need help preparing a CSV.
             </P>
           </>
         ),
@@ -411,8 +410,8 @@ const CATEGORIES = [
         body: (
           <P last>
             Use the barcode scanner on a phone or tablet to add books by scanning the ISBN on the
-            back cover — title, author and cover are filled in automatically. The library is shared
-            across your school, so books added by any teacher are visible to all.
+            back cover. Title, author and cover are filled in for you. The library is shared across
+            your school, so books added by any teacher are visible to all.
           </P>
         ),
       },
@@ -428,7 +427,7 @@ const CATEGORIES = [
               recommendations and helps with shelf choices.
             </P>
             <P last>
-              If a book's level doesn't match how your school grades it, you can change it — the
+              If a book's level doesn't match how your school grades it, you can change it. The
               change applies to your school only, without affecting other schools using the shared
               catalogue.
             </P>
@@ -443,14 +442,14 @@ const CATEGORIES = [
           <>
             <P>
               The <strong>Recommend</strong> tab searches your school's own library to find the best
-              match for a student — so every suggestion is a book you actually have on the shelf.
+              match for a student, so every suggestion is a book you already have on the shelf.
               Choose a focus mode: <strong>Balanced</strong> (a mix of levels),{' '}
               <strong>Consolidation</strong> (confidence-building reads at or below level), or{' '}
               <strong>Challenge</strong> (stretch reads above level).
             </P>
             <P last>
               AI-powered suggestions are an optional add-on for broader recommendations beyond your
-              library — schools can bring their own API key or purchase the add-on.
+              library. Schools can bring their own API key or buy the add-on.
             </P>
           </>
         ),
@@ -460,7 +459,7 @@ const CATEGORIES = [
   {
     id: 'achievements-stats',
     title: 'Achievements & stats',
-    blurb: 'Badges, the class garden, streaks, and class-wide insights.',
+    blurb: 'Badges, the class garden, streaks, and how the class is doing overall.',
     accent: 'sky',
     icon: <EmojiEventsIcon sx={{ fontSize: 22 }} />,
     articles: [
@@ -471,7 +470,7 @@ const CATEGORIES = [
         body: (
           <>
             <P>
-              Students earn badges automatically as they read — no manual input needed. Every time a
+              Students earn badges as they read, with nothing for you to award by hand. Every time a
               session is saved, Tally checks whether any new badges have been unlocked and shows a
               celebration if so.
             </P>
@@ -479,24 +478,24 @@ const CATEGORIES = [
               ordered={false}
               items={[
                 <span key="1">
-                  <strong>Milestones</strong> — First Finish (first book logged), Series Finisher
-                  (3+ books by the same author)
+                  <strong>Milestones</strong>: First Finish (first book logged), Series Finisher (3+
+                  books by the same author)
                 </span>,
                 <span key="2">
-                  <strong>Volume</strong> — Bookworm (books read) and Time Traveller (minutes read),
+                  <strong>Volume</strong>: Bookworm (books read) and Time Traveller (minutes read),
                   each with four tiers. Targets scale by year group so KS1 and KS2 are measured
                   fairly.
                 </span>,
                 <span key="3">
-                  <strong>Consistency</strong> — Steady Reader (3 days in a week), Week Warrior
+                  <strong>Consistency</strong>: Steady Reader (3 days in a week), Week Warrior
                   (every day in a week), Monthly Marvel (4+ days every week for a month)
                 </span>,
                 <span key="4">
-                  <strong>Exploration</strong> — Genre Explorer (3, 5, or 7 genres), Fiction &amp;
+                  <strong>Exploration</strong>: Genre Explorer (3, 5, or 7 genres), Fiction &amp;
                   Fact (both fiction and non-fiction)
                 </span>,
                 <span key="5">
-                  <strong>Secret badges</strong> — a couple of surprises that only reveal themselves
+                  <strong>Secret badges</strong>: a couple of surprises that only reveal themselves
                   when earned
                 </span>,
               ]}
@@ -510,7 +509,7 @@ const CATEGORIES = [
         keywords: 'garden goals term seedling sprout bloom whiteboard completion',
         body: (
           <P last>
-            On the <strong>Achievements</strong> tab, select a class to see the class garden — a
+            On the <strong>Achievements</strong> tab, select a class to see the class garden, a
             visual display that grows through four stages (Seedling &rarr; Sprout &rarr; Bloom
             &rarr; Full Garden) as your class completes its goals for the term. It works well
             projected on a classroom whiteboard to celebrate progress together. The completion rate
@@ -528,17 +527,17 @@ const CATEGORIES = [
             ordered={false}
             items={[
               <span key="1">
-                <strong>Overview</strong> — active reader counts, reading days, and session totals
+                <strong>Overview</strong>: active reader counts, reading days, and session totals
                 with trend indicators
               </span>,
               <span key="2">
-                <strong>Frequency</strong> — which days of the week your class reads most
+                <strong>Frequency</strong>: which days of the week your class reads most
               </span>,
               <span key="3">
-                <strong>Streaks</strong> — a leaderboard of the longest current streaks
+                <strong>Streaks</strong>: a leaderboard of the longest current streaks
               </span>,
               <span key="4">
-                <strong>Needs Attention</strong> — students who haven't read recently, sorted by
+                <strong>Needs Attention</strong>: students who haven't read recently, sorted by
                 urgency
               </span>,
             ]}
@@ -552,8 +551,8 @@ const CATEGORIES = [
         body: (
           <P last>
             Reading on consecutive days builds a streak. The grace period setting (in{' '}
-            <strong>Settings</strong>) lets students miss a day without breaking their streak —
-            useful so weekends don't undo a good week.
+            <strong>Settings</strong>) lets students miss a day without breaking their streak, so a
+            weekend doesn't undo a good week.
           </P>
         ),
       },
@@ -575,14 +574,14 @@ const CATEGORIES = [
             ordered={false}
             items={[
               <span key="1">
-                <strong>Admin</strong> — school-wide management: users, classes, settings, and
+                <strong>Admin</strong>: school-wide management of users, classes, settings and
                 everything teachers can do
               </span>,
               <span key="2">
-                <strong>Teacher</strong> — manages students, classes, books, and reading sessions
+                <strong>Teacher</strong>: manages students, classes, books, and reading sessions
               </span>,
               <span key="3">
-                <strong>Read-only</strong> — can view everything but change nothing
+                <strong>Read-only</strong>: can view everything but change nothing
               </span>,
             ]}
           />
@@ -601,7 +600,7 @@ const CATEGORIES = [
             </P>
             <P last>
               If your school uses MyLogin single sign-on, password resets are handled by MyLogin
-              directly — please contact your school's IT team.
+              directly. Please contact your school's IT team.
             </P>
           </>
         ),
@@ -626,7 +625,7 @@ const CATEGORIES = [
               ]}
             />
             <P last>
-              We only read from your MIS — we never write back to it, and reading data never leaves
+              We only read from your MIS. We never write back to it, and reading data never leaves
               Tally. Admins can trigger a manual sync at any time from{' '}
               <strong>Settings &rarr; Wonde Sync</strong>.
             </P>
@@ -639,7 +638,7 @@ const CATEGORIES = [
         keywords: 'parent portal qr code link share home view',
         body: (
           <P last>
-            From a student's profile you can generate a QR code or link for their parents — scan it
+            From a student's profile you can generate a QR code or link for their parents. Scan it
             and they can see their child's reading (recent sessions, streak and badges) and tick off
             reading done at home, naming the book if they want to. That's all they can do: no
             account, no password, and nothing else about the child is editable. Share the link with
@@ -664,8 +663,8 @@ const CATEGORIES = [
         body: (
           <>
             <P>
-              Tally Reading is entirely web-based — no software installation is required. Your IT
-              team just needs to ensure this domain is reachable from the school network:
+              Tally Reading runs in the browser, so there is nothing to install. Your IT team just
+              needs to ensure this domain is reachable from the school network:
             </P>
             <HelpTable
               headers={['Domain', 'Protocol', 'Port']}
@@ -680,7 +679,7 @@ const CATEGORIES = [
         keywords: 'chrome edge safari browser requirements plugins',
         body: (
           <P last>
-            Any modern browser works — we recommend the latest Google Chrome, Microsoft Edge, or
+            Any modern browser works. We suggest the latest Google Chrome, Microsoft Edge, or
             Safari. No browser extensions or plugins are needed, and it works on tablets and phones
             as well as desktops.
           </P>
@@ -731,8 +730,8 @@ const CATEGORIES = [
         body: (
           <P last>
             This means your school firewall or web filter is blocking <code>tallyreading.uk</code>.
-            Ask your IT team to add it to the allowed domains list (HTTPS on port 443) — see the
-            "For school IT" section for the details to forward.
+            Ask your IT team to add it to the allowed domains list (HTTPS on port 443). See the "For
+            school IT" section for the details to forward.
           </P>
         ),
       },
@@ -772,7 +771,7 @@ const CATEGORIES = [
               MyLogin button rather than the email and password fields.
             </P>
             <P last>
-              Still stuck? Email us and we'll sort it — include the email address you're trying to
+              Still stuck? Email us and we'll sort it. Include the email address you're trying to
               sign in with.
             </P>
           </>
@@ -784,7 +783,7 @@ const CATEGORIES = [
         keywords: 'bug issue report support ticket feedback broken',
         body: (
           <P last>
-            The quickest route is the support icon in the app header — messages sent from there
+            The quickest route is the support icon in the app header. Messages sent from there
             include the page you were on, which helps us help you faster. Otherwise, email{' '}
             <Link
               href="mailto:help@tallyreading.uk"
@@ -805,8 +804,8 @@ const FAQS = [
     q: 'What does Tally Reading cost?',
     a: (
       <P last>
-        £1 per pupil, per year — no minimum spend and no surprises. AI-powered book recommendations
-        are an optional add-on at £49 per year (or free if your school brings its own API key).
+        £1 per pupil, per year, with no minimum spend. AI book recommendations are an optional
+        add-on at £49 per year (or free if your school brings its own API key).
       </P>
     ),
   },
@@ -814,8 +813,9 @@ const FAQS = [
     q: 'Can we try it before committing?',
     a: (
       <P last>
-        Yes — UK primary schools get a free 30-day trial, no card required. You can also explore the
-        instant demo from the home page to see Tally with realistic data before signing up.
+        Yes. UK primary schools get a free 30-day trial and we don't ask for a card. You can also
+        explore the instant demo from the home page to see Tally with realistic data before signing
+        up.
       </P>
     ),
   },
@@ -823,8 +823,8 @@ const FAQS = [
     q: 'Do teachers need to install anything?',
     a: (
       <P last>
-        No. Tally runs entirely in the browser — Chrome, Edge or Safari are all fine — on desktops,
-        tablets and phones. There are no plugins, extensions, or apps to install.
+        No. Tally runs in the browser, so Chrome, Edge or Safari on desktops, tablets and phones.
+        There are no plugins, extensions, or apps to install.
       </P>
     ),
   },
@@ -833,7 +833,7 @@ const FAQS = [
     a: (
       <P last>
         On Cloudflare's UK and EU infrastructure, encrypted in transit and at rest. We're registered
-        with the ICO (ZC098130) and act as your data processor — see our{' '}
+        with the ICO (ZC098130) and act as your data processor. See our{' '}
         <Link href="/privacy" sx={{ color: 'primary.main', fontWeight: 600 }}>
           Privacy Policy
         </Link>{' '}
@@ -845,7 +845,7 @@ const FAQS = [
     q: 'Does Tally write anything back to our MIS?',
     a: (
       <P last>
-        No. The Wonde sync is strictly read-only — we pull students, classes and teacher assignments
+        No. The Wonde sync is strictly read-only. We pull students, classes and teacher assignments
         from your MIS, and reading data never leaves Tally.
       </P>
     ),
@@ -855,7 +855,7 @@ const FAQS = [
     a: (
       <P last>
         Yes. Teachers can share a QR code or link from any student's profile that lets parents see
-        their child's sessions, streak and badges, and tick off reading done at home — no account
+        their child's sessions, streak and badges, and tick off reading done at home. No account
         needed. That is the only thing they can change, and the link can be revoked at any time.
       </P>
     ),
@@ -864,9 +864,9 @@ const FAQS = [
     q: 'Can reading volunteers use Tally?',
     a: (
       <P last>
-        Yes — invite volunteers as teachers so they can log sessions. The priority reading list
-        shows exactly who needs reading with next, so you can hand a volunteer the device and let
-        them get straight to it.
+        Yes. Invite volunteers as teachers so they can log sessions. The priority reading list shows
+        exactly who needs reading with next, so you can hand a volunteer the device and let them get
+        straight to it.
       </P>
     ),
   },
@@ -874,7 +874,7 @@ const FAQS = [
     q: 'What happens to our data if we leave?',
     a: (
       <P last>
-        It's your school's data. If you stop using Tally we delete it — and we're happy to confirm
+        It's your school's data. If you stop using Tally we delete it, and we're happy to confirm
         that in writing for your records.
       </P>
     ),
@@ -889,7 +889,7 @@ const POPULAR = [
 ];
 
 /* ==================================================================
-   Contact dialog — posts to the public /api/contact endpoint
+   Contact dialog: posts to the public /api/contact endpoint
 ================================================================== */
 
 const ContactDialog = ({ open, onClose }) => {
@@ -919,7 +919,7 @@ const ContactDialog = ({ open, onClose }) => {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Something went wrong — please try again.');
+        throw new Error(data.error || 'Something went wrong. Please try again.');
       }
       setSent(true);
     } catch (err) {
@@ -957,7 +957,7 @@ const ContactDialog = ({ open, onClose }) => {
               Message on its way
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-              We'll get back to you as soon as we can — usually within two working days.
+              We'll get back to you as soon as we can, usually within two working days.
             </Typography>
             <Button
               onClick={onClose}
@@ -976,7 +976,7 @@ const ContactDialog = ({ open, onClose }) => {
               How can we help?
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-              The more detail the better — your school name, what you tried, and what you expected
+              The more detail the better: your school name, what you tried, and what you expected
               all help us help you faster.
             </Typography>
 
@@ -1404,7 +1404,7 @@ const Help = () => {
             variant="body1"
             sx={{ color: 'text.secondary', maxWidth: 480, mx: 'auto', mb: 4, lineHeight: 1.6 }}
           >
-            Guides, troubleshooting and quick answers for teachers, admins and IT — everything you
+            Guides, troubleshooting and quick answers for teachers, admins and IT. Everything you
             need to keep readers turning pages.
           </Typography>
 
@@ -1893,8 +1893,8 @@ const Help = () => {
                   sx={{ color: 'text.secondary', maxWidth: 460, lineHeight: 1.6 }}
                 >
                   We're a small UK team and we read every message. Tell us what you're stuck on and
-                  we'll get back to you with a fix, a workaround, or a friendly nudge — usually
-                  within two working days.
+                  we'll get back to you with a fix, a workaround or a friendly nudge, usually within
+                  two working days.
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', gap: 1.25, flexShrink: 0, position: 'relative' }}>

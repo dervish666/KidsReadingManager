@@ -84,7 +84,7 @@ contactRouter.post('/', async (c) => {
     return c.json(
       {
         error:
-          'Sorry — we could not submit your enquiry just now. Please try again in a moment, or email us directly.',
+          'Sorry, we could not submit your enquiry just now. Please try again in a moment, or email us directly.',
       },
       503
     );

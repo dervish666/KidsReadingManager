@@ -415,53 +415,52 @@ const PrivacyPolicy = () => {
               [
                 'Providing the reading management service to schools',
                 'Pupil data, staff user data',
-                <strong>Article 6(1)(b) — Contract</strong>,
+                <strong>Article 6(1)(b): Contract</strong>,
                 'Processing is necessary to perform the contract between Tally and the subscribing school.',
               ],
               [
                 'User authentication and session management',
                 'Email, password hash, authentication tokens',
-                <strong>Article 6(1)(b) — Contract</strong>,
+                <strong>Article 6(1)(b): Contract</strong>,
                 'Necessary to provide secure access to the service.',
               ],
               [
                 'AI-powered book recommendations (optional)',
                 'Pupil reading level, preferences, likes/dislikes, books read, genre preferences',
                 <span>
-                  <strong>Article 6(1)(b) — Contract</strong> with{' '}
-                  <strong>Article 6(1)(a) — Consent</strong> as a secondary basis at the school
-                  level
+                  <strong>Article 6(1)(b): Contract</strong> with{' '}
+                  <strong>Article 6(1)(a): Consent</strong> as a secondary basis at the school level
                 </span>,
                 'Schools actively opt in by configuring their own AI API keys. Individual recommendations are triggered by teacher action. See Section 5.2 for details.',
               ],
               [
                 'Audit logging and security monitoring',
                 'IP address, user-agent, action details',
-                <strong>Article 6(1)(f) — Legitimate interests</strong>,
+                <strong>Article 6(1)(f): Legitimate interests</strong>,
                 'Our legitimate interest in maintaining the security and integrity of the platform and detecting unauthorised access.',
               ],
               [
                 'Rate limiting on authentication endpoints',
                 'Hashed IP/identifier, timestamp',
-                <strong>Article 6(1)(f) — Legitimate interests</strong>,
+                <strong>Article 6(1)(f): Legitimate interests</strong>,
                 'Our legitimate interest in preventing brute-force attacks.',
               ],
               [
                 'Sending password-reset and welcome emails',
                 'Email address',
-                <strong>Article 6(1)(b) — Contract</strong>,
+                <strong>Article 6(1)(b): Contract</strong>,
                 'Necessary to operate the account system.',
               ],
               [
                 'Calculating and displaying reading streaks',
                 'Reading session dates',
-                <strong>Article 6(1)(b) — Contract</strong>,
+                <strong>Article 6(1)(b): Contract</strong>,
                 'Core product feature for tracking reading progress.',
               ],
               [
                 'Platform improvement and bug fixing',
                 'Aggregated, anonymised usage patterns',
-                <strong>Article 6(1)(f) — Legitimate interests</strong>,
+                <strong>Article 6(1)(f): Legitimate interests</strong>,
                 'We do not use identifiable personal data for this purpose.',
               ],
             ]}
@@ -591,7 +590,7 @@ const PrivacyPolicy = () => {
             necessary for the stated purpose.
           </BodyText>
 
-          <SubsectionHeading>5.1 Infrastructure provider — Cloudflare, Inc.</SubsectionHeading>
+          <SubsectionHeading>5.1 Infrastructure provider: Cloudflare, Inc.</SubsectionHeading>
 
           <PolicyTable
             headers={['Detail', 'Value']}
@@ -628,7 +627,7 @@ const PrivacyPolicy = () => {
             rows={[
               [
                 <strong>Providers</strong>,
-                "Anthropic (Claude), OpenAI, Google (Gemini) — at the school's choice",
+                "Anthropic (Claude), OpenAI, Google (Gemini), at the school's choice",
               ],
               [
                 <strong>Activation</strong>,
@@ -656,14 +655,14 @@ const PrivacyPolicy = () => {
                   its term dates are sent alongside the figures, so the summary can tell term time
                   from a school holiday.{' '}
                   <strong>
-                    Otherwise only whole-school or whole-class totals are sent — no pupil names,
-                    identifiers or characteristics, and nothing about any individual pupil.
+                    Otherwise only whole-school or whole-class totals are sent. No pupil names, no
+                    identifiers, no characteristics, and nothing about any individual pupil.
                   </strong>
                 </span>,
               ],
               [
                 <strong>Safeguards</strong>,
-                'Each school controls whether to enable this feature. A school using its own API key is bound by its own agreement with the chosen AI provider. A school on our paid AI add-on is served through Tally’s provider account, and that provider acts as a sub-processor to Tally — listed in our sub-processor register.',
+                'Each school controls whether to enable this feature. A school using its own API key is bound by its own agreement with the chosen AI provider. A school on our paid AI add-on is served through Tally’s provider account, and that provider acts as a sub-processor to Tally, listed in our sub-processor register.',
               ],
             ]}
           />
@@ -713,7 +712,7 @@ const PrivacyPolicy = () => {
             ]}
           />
 
-          <SubsectionHeading>5.5 Wonde — MIS data sync</SubsectionHeading>
+          <SubsectionHeading>5.5 Wonde: MIS data sync</SubsectionHeading>
 
           <PolicyTable
             headers={['Detail', 'Value']}
@@ -734,7 +733,7 @@ const PrivacyPolicy = () => {
             ]}
           />
 
-          <SubsectionHeading>5.6 Sentry — error monitoring</SubsectionHeading>
+          <SubsectionHeading>5.6 Sentry: error monitoring</SubsectionHeading>
 
           <PolicyTable
             headers={['Detail', 'Value']}
@@ -755,7 +754,7 @@ const PrivacyPolicy = () => {
             ]}
           />
 
-          <SubsectionHeading>5.7 MyLogin — single sign-on (optional)</SubsectionHeading>
+          <SubsectionHeading>5.7 MyLogin: single sign-on (optional)</SubsectionHeading>
 
           <PolicyTable
             headers={['Detail', 'Value']}
@@ -806,7 +805,7 @@ const PrivacyPolicy = () => {
               ],
               [
                 <span>
-                  <strong>AI providers (US)</strong> — if enabled by the school
+                  <strong>AI providers (US)</strong>: if enabled by the school
                 </span>,
                 "Where a school supplies its own API key, the school is responsible for ensuring its use of that provider complies with its own data transfer obligations, and Tally does not hold a contract with the provider on the school's behalf. Where a school uses our paid AI add-on, Tally holds that contract and the provider acts as a sub-processor to Tally.",
               ],

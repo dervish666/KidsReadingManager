@@ -2,12 +2,12 @@
  * Email utilities for sending transactional emails
  *
  * Provider strategy:
- * 1. Cloudflare Email Service (send_email binding) — primary. Uses the simple
+ * 1. Cloudflare Email Service (send_email binding): primary. Uses the simple
  *    object-based API introduced in public beta (2026-04-16). No MIME plumbing,
- *    no cloudflare:email import — just env.EMAIL_SENDER.send({ to, from, ... }).
+ *    no cloudflare:email import, just env.EMAIL_SENDER.send({ to, from, ... }).
  *    Cloudflare auto-manages SPF/DKIM/DMARC and IP reputation for
  *    Email-Service-verified domains.
- * 2. Resend (RESEND_API_KEY) — fallback. Catches Cloudflare failures during
+ * 2. Resend (RESEND_API_KEY): fallback. Catches Cloudflare failures during
  *    the beta migration. Safe to remove once Cloudflare reaches GA and we've
  *    validated deliverability.
  *
@@ -56,7 +56,7 @@ async function sendEmail(env, message, logLabel) {
     return sendWithResend(env.RESEND_API_KEY, message);
   }
 
-  // Cloudflare was tried and failed, no Resend fallback configured — surface
+  // Cloudflare was tried and failed, no Resend fallback configured, so surface
   // the original error so operators can see what broke.
   if (cfError) {
     return { success: false, error: cfError };
@@ -105,7 +105,7 @@ async function sendWithResend(apiKey, { from, to, subject, text, html }) {
  *
  * Uses the simple object-based API from the public-beta Email Service
  * (2026-04-16). The binding's .send() method now accepts a plain object with
- * { from, to, subject, text, html } — no EmailMessage / MIME construction
+ * { from, to, subject, text, html }, no EmailMessage / MIME construction
  * required. Cloudflare handles SPF/DKIM/DMARC and IP reputation automatically
  * for domains approved for Email Service sending.
  *
@@ -152,7 +152,8 @@ This link will expire in 1 hour.
 
 If you didn't request this, you can safely ignore this email.
 
-- The Tally Reading Team`;
+Thanks,
+The Tally Reading team`;
 
   const htmlBody = `
 <!DOCTYPE html>
@@ -272,18 +273,17 @@ export async function sendWelcomeEmail(
   const subject = `Welcome to Tally Reading - ${organizationName}`;
   const textBody = `Hi ${recipientName},
 
-Welcome to Tally Reading!
+You've been added to ${organizationName} on Tally Reading.
 
-You've been added to the ${organizationName} organization.
-
-Your login credentials:
+Your login details:
 Email: ${recipientEmail}
 Temporary Password: ${temporaryPassword}
 
-Please log in and change your password immediately:
+Please log in and change your password straight away:
 ${loginUrl}
 
-- The Tally Reading Team`;
+Thanks,
+The Tally Reading team`;
 
   const htmlBody = `
 <!DOCTYPE html>
@@ -300,18 +300,18 @@ ${loginUrl}
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
     <p style="font-size: 16px;">Hi <strong>${escapeHtml(recipientName)}</strong>,</p>
 
-    <p>Welcome to Tally Reading! You've been added to the <strong>${escapeHtml(organizationName)}</strong> organization.</p>
+    <p>You've been added to <strong>${escapeHtml(organizationName)}</strong> on Tally Reading.</p>
 
     <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 20px; margin: 20px 0;">
-      <p style="margin: 0 0 10px 0;"><strong>Your login credentials:</strong></p>
+      <p style="margin: 0 0 10px 0;"><strong>Your login details:</strong></p>
       <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Email: ${escapeHtml(recipientEmail)}</p>
       <p style="margin: 5px 0; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">Temporary Password: ${escapeHtml(temporaryPassword)}</p>
     </div>
 
-    <p style="color: #dc2626; font-size: 14px;"><strong>Important:</strong> Please log in and change your password immediately.</p>
+    <p style="color: #dc2626; font-size: 14px;"><strong>Important:</strong> Please log in and change your password straight away.</p>
 
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${escapeHtml(loginUrl)}" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Log In Now</a>
+      <a href="${escapeHtml(loginUrl)}" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Log in</a>
     </div>
   </div>
 </body>
@@ -371,7 +371,7 @@ ${ticket.message}`;
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #8AAD8A 0%, #6B8E6B 100%); padding: 30px; border-radius: 8px 8px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading — Support</h1>
+    <h1 style="color: white; margin: 0; font-size: 24px;">Tally Reading Support</h1>
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
@@ -426,9 +426,10 @@ Your free trial of Tally Reading for ${organizationName} will end in ${daysRemai
 
 To keep using Tally Reading without interruption, please subscribe from the Billing section in your settings.
 
-If you have any questions, reply to this email — we're happy to help.
+If you have any questions, just reply to this email. A person reads them.
 
-— The Tally Reading Team`;
+Thanks,
+The Tally Reading team`;
 
   const htmlBody = `
 <!DOCTYPE html>
@@ -453,10 +454,10 @@ If you have any questions, reply to this email — we're happy to help.
       <a href="https://tallyreading.uk/settings" style="background: #6B8E6B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">Go to Settings</a>
     </div>
 
-    <p style="color: #6b7280; font-size: 14px;">If you have any questions, just reply to this email — we're happy to help.</p>
+    <p style="color: #6b7280; font-size: 14px;">If you have any questions, just reply to this email. A person reads them.</p>
 
     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-    <p style="color: #9ca3af; font-size: 12px; margin: 0;">Tally Reading — Helping every child become a confident reader.</p>
+    <p style="color: #9ca3af; font-size: 12px; margin: 0;">Tally Reading, tallyreading.uk</p>
   </div>
 </body>
 </html>`;
