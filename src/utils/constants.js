@@ -35,6 +35,40 @@ export const CLASS_YEAR_GROUP_OPTIONS = [
  * Each path must be explicitly listed — no wildcard prefixes.
  * Note: /api/covers/* uses a startsWith check separately.
  */
+/**
+ * Teacher-facing prefixes under `/api/parent/`.
+ *
+ * Everything under `/api/parent/` is public by default — the token in the URL
+ * *is* the auth for the parent portal — so each teacher-facing prefix has to be
+ * named here to get JWT auth and an `organizationId` instead.
+ *
+ * This lived in two places: `src/worker.js` and the auth middleware in
+ * `src/middleware/tenant.js`. Adding `/api/parent/school/` to only the first
+ * (v3.126.0) meant the auth middleware waved the request through with no user,
+ * `requireTeacher()` answered 401, and the client took that for an expired
+ * session and logged the teacher out mid-print. One list, imported twice.
+ */
+export const TEACHER_PARENT_PREFIXES = [
+  '/api/parent/generate/',
+  '/api/parent/token/',
+  '/api/parent/class/',
+  '/api/parent/school/',
+  '/api/parent/tokens/',
+];
+
+/**
+ * True for the token-authenticated parent-portal routes that bypass JWT auth.
+ *
+ * @param {string} pathname
+ * @returns {boolean}
+ */
+export function isPublicParentRoute(pathname) {
+  return (
+    pathname.startsWith('/api/parent/') &&
+    !TEACHER_PARENT_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  );
+}
+
 export const PUBLIC_PATHS = [
   '/api/auth/mode',
   '/api/auth/login',

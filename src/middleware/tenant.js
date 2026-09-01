@@ -4,7 +4,7 @@
  */
 
 import { verifyAccessToken, hasPermission, ROLES } from '../utils/crypto.js';
-import { PUBLIC_PATHS } from '../utils/constants.js';
+import { PUBLIC_PATHS, isPublicParentRoute } from '../utils/constants.js';
 import { getCachedOrgStatus, setCachedOrgStatus } from '../utils/orgStatusCache.js';
 
 /**
@@ -43,16 +43,10 @@ export function jwtAuthMiddleware() {
     const url = new URL(c.req.url);
 
     // Allow public endpoints
-    const isPublicParentRoute =
-      url.pathname.startsWith('/api/parent/') &&
-      !url.pathname.startsWith('/api/parent/generate/') &&
-      !url.pathname.startsWith('/api/parent/token/') &&
-      !url.pathname.startsWith('/api/parent/class/') &&
-      !url.pathname.startsWith('/api/parent/tokens/');
     if (
       PUBLIC_PATHS.includes(url.pathname) ||
       url.pathname.startsWith('/api/covers/') ||
-      isPublicParentRoute
+      isPublicParentRoute(url.pathname)
     ) {
       return next();
     }

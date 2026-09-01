@@ -58,7 +58,7 @@ import {
   subscriptionGate,
   costRateLimit,
 } from './middleware/tenant';
-import { PUBLIC_PATHS } from './utils/constants.js';
+import { PUBLIC_PATHS, isPublicParentRoute } from './utils/constants.js';
 import packageJson from '../package.json';
 
 // Single source of truth for the version — read from package.json so /api/health
@@ -228,18 +228,6 @@ app.use('/api/*', jwtAuthMiddleware());
 // It cost one D1 round-trip on every authenticated API request. If you are
 // here because something looks like an FK problem, the fix is not to put this
 // back — see docs/gdpr/03-dpia.md.
-
-// Public parent routes use token-in-URL auth; teacher-facing parent routes need JWT
-function isPublicParentRoute(pathname) {
-  return (
-    pathname.startsWith('/api/parent/') &&
-    !pathname.startsWith('/api/parent/generate/') &&
-    !pathname.startsWith('/api/parent/token/') &&
-    !pathname.startsWith('/api/parent/class/') &&
-    !pathname.startsWith('/api/parent/school/') &&
-    !pathname.startsWith('/api/parent/tokens/')
-  );
-}
 
 // Apply tenant middleware for multi-tenant mode (only if JWT auth is enabled)
 app.use('/api/*', async (c, next) => {

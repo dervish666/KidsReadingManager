@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.126.2] - 2026-09-01
+
+### Fixed
+
+- **Printing all parent codes logged you out.** The rule that says which parent routes need a teacher login was written out twice, in two files, and yesterday's new whole-school endpoints were only added to one of them. The other treated them as public, so the server answered "not logged in", and the app took that at face value and signed the teacher out. There is now one copy of that rule, and a test that fails if a teacher-only parent route is ever left off it.
+
 ## [3.126.1] - 2026-09-01
 
 ### Changed
