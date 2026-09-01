@@ -287,14 +287,30 @@ export async function runFullSync(orgId, schoolToken, wondeSchoolId, db, options
       await db.batch(chunk);
     }
 
-    // Full-sync reconcile: deactivate Wonde-linked classes the MIS no longer
-    // reports, so deleted classes/groups stop cluttering Manage Classes and
-    // dropdowns. Full sync only — a delta legitimately omits unchanged
-    // classes — and gated on a non-empty fetch so a failed/partial fetch
-    // can't deactivate the whole school. Manually-created classes
-    // (wonde_class_id IS NULL) are never touched.
-    if (syncType === 'full' && wondeClasses.length > 0) {
-      const seenWondeIds = new Set(wondeClasses.map((wc) => wc.id));
+    // Reconcile: deactivate Wonde-linked classes the MIS no longer reports,
+    // so last year's classes stop cluttering Manage Classes and dropdowns.
+    // Gated on a non-empty list so a failed/partial fetch can't deactivate
+    // the whole school. Manually-created classes (wonde_class_id IS NULL)
+    // are never touched.
+    //
+    // A delta's own fetch is filtered by updated_after and legitimately omits
+    // unchanged classes, so it can never be reconciled against. But the
+    // academic-year rollover arrives *as* a delta: Cheddar Grove's 3 AM delta
+    // on 2026-08-31 created 14 new classes and left last year's 16 active,
+    // and every class dropdown read "1P, 1P, 2A, 2A, 5D, 5D" until a full
+    // sync was run by hand. So when a delta creates classes, re-fetch the
+    // unfiltered list and reconcile against that instead — one extra API
+    // call on the handful of nights where the class set actually changes.
+    let reconcileList = syncType === 'full' ? wondeClasses : null;
+    if (syncType === 'delta' && counts.classesCreated > 0) {
+      reconcileList =
+        classSource === 'groups'
+          ? await fetchAllGroups(schoolToken, wondeSchoolId)
+          : await fetchAllClasses(schoolToken, wondeSchoolId);
+    }
+
+    if (reconcileList && reconcileList.length > 0) {
+      const seenWondeIds = new Set(reconcileList.map((wc) => wc.id));
       const orphanedClassIds = (existingClassesResult.results || [])
         .filter((r) => r.wonde_class_id && !seenWondeIds.has(r.wonde_class_id))
         .map((r) => r.id);

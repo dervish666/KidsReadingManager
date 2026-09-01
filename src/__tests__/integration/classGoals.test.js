@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { Hono } from 'hono';
 import { classesRouter } from '../../routes/classes.js';
 import { errorHandler, onError } from '../../middleware/errorHandler.js';
+import { resolveAcademicYear } from '../../utils/classGoalsEngine.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,10 @@ function makeMockDb(handlers) {
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
-const TERM = '2025/26'; // today resolves to this academic year when no term_dates exist (April 2026 → Sep 2025–Aug 2026)
+// The academic year today falls in with no term_dates rows (Sep–Aug cycle).
+// Hardcoding it meant the suite went red on 1 September 2026 for reasons that
+// had nothing to do with the code — derive it the way the engine does.
+const TERM = resolveAcademicYear([], new Date().toISOString().slice(0, 10)).term;
 
 const makeGoalRow = (metric, { target = 20, current = 0, achieved_at = null } = {}) => ({
   id: `goal-${metric}`,

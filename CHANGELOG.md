@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.124.3] - 2026-09-01
+
+The new school year arrived and every class dropdown showed each form twice.
+
+### Fixed
+
+- **Last year's classes now disappear when the new year's arrive.** Wonde rolls a school over to the new academic year, and the overnight sync picked up the new classes but left the old ones in place, so Cheddar Grove's dropdowns read "1P, 1P, 2A, 2A, 5D, 5D" the morning of 31 August. The tidy-up that retires classes the school's MIS no longer reports only ran on a full sync, and the rollover arrives as an overnight delta sync. An overnight sync that creates classes now re-checks the school's full class list and retires the ones that have gone. Classes you created by hand in Tally are never touched, and a failed or empty fetch still retires nothing.
+- **Two tests that broke on the calendar, not on the code.** One had the academic year `2025/26` typed into it and the other used "yesterday" as a date inside the current year, so both went red on the morning of 1 September for no reason anyone would enjoy debugging.
+
 ## [3.124.2] - 2026-08-23
 
 The same pass that went over the landing page, applied to the rest of the writing in Tally. Nothing behaves differently. It just reads less like it came out of a machine.

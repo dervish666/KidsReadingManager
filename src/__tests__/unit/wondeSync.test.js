@@ -765,9 +765,46 @@ describe('runFullSync', () => {
       expect(deactivateCall[0]).toContain('WHERE id IN');
     });
 
-    it('delta sync never deactivates classes', async () => {
-      withExistingClasses([{ wonde_class_id: 'WCLS_GONE', id: 'class-gone', name: 'Old' }]);
-      fetchAllClasses.mockResolvedValue([sampleClasses[0]]);
+    it('delta sync that creates no classes deactivates nothing', async () => {
+      withExistingClasses([
+        { wonde_class_id: 'WCLS_GONE', id: 'class-gone', name: 'Old' },
+        { wonde_class_id: 'WCLS_1', id: 'class-1', name: 'Year 3 Red' },
+      ]);
+      fetchAllClasses.mockResolvedValue([sampleClasses[0]]); // WCLS_1 already exists
+      fetchAllStudents.mockResolvedValue([]);
+      fetchDeletions.mockResolvedValue([]);
+
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, {
+        updatedAfter: '2026-02-20T00:00:00Z',
+      });
+
+      expect(findDeactivations()).toHaveLength(0);
+      expect(fetchAllClasses).toHaveBeenCalledTimes(1);
+    });
+
+    // The academic-year rollover arrives as a delta: new classes appear and
+    // last year's are left behind, so the dropdown shows each form twice.
+    it('delta sync that creates classes reconciles against a re-fetched full list', async () => {
+      withExistingClasses([{ wonde_class_id: 'WCLS_LAST_YEAR', id: 'class-old', name: '5D' }]);
+      fetchAllClasses
+        .mockResolvedValueOnce([sampleClasses[0]]) // delta: one brand-new class
+        .mockResolvedValueOnce([sampleClasses[0]]); // unfiltered: last year's is gone
+      fetchAllStudents.mockResolvedValue([]);
+      fetchDeletions.mockResolvedValue([]);
+
+      await runFullSync(ORG_ID, SCHOOL_TOKEN, WONDE_SCHOOL_ID, db, {
+        updatedAfter: '2026-02-20T00:00:00Z',
+      });
+
+      expect(findDeactivations()).toHaveLength(1);
+      // Second call carries no updated_after — that is the whole point.
+      expect(fetchAllClasses).toHaveBeenCalledTimes(2);
+      expect(fetchAllClasses.mock.calls[1][2]).toBeUndefined();
+    });
+
+    it('a delta whose re-fetch comes back empty deactivates nothing', async () => {
+      withExistingClasses([{ wonde_class_id: 'WCLS_LAST_YEAR', id: 'class-old', name: '5D' }]);
+      fetchAllClasses.mockResolvedValueOnce([sampleClasses[0]]).mockResolvedValueOnce([]);
       fetchAllStudents.mockResolvedValue([]);
       fetchDeletions.mockResolvedValue([]);
 
