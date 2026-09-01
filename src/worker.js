@@ -236,6 +236,7 @@ function isPublicParentRoute(pathname) {
     !pathname.startsWith('/api/parent/generate/') &&
     !pathname.startsWith('/api/parent/token/') &&
     !pathname.startsWith('/api/parent/class/') &&
+    !pathname.startsWith('/api/parent/school/') &&
     !pathname.startsWith('/api/parent/tokens/')
   );
 }

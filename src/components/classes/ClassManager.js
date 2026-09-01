@@ -63,6 +63,7 @@ const ClassManager = () => {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [error, setError] = useState('');
   const [qrClass, setQrClass] = useState(null);
+  const [schoolQrOpen, setSchoolQrOpen] = useState(false);
 
   // Expandable student list state
   const [expandedClassId, setExpandedClassId] = useState(null);
@@ -463,9 +464,31 @@ const ClassManager = () => {
 
   return (
     <Paper sx={{ p: 3, mt: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Manage Classes
-      </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 1,
+          mb: 1,
+        }}
+      >
+        <Typography variant="h6">Manage Classes</Typography>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<QrCode2Icon />}
+          onClick={() => setSchoolQrOpen(true)}
+          sx={{
+            borderColor: '#2d5016',
+            color: '#2d5016',
+            '&:hover': { borderColor: '#4a7c28', bgcolor: 'rgba(45, 80, 22, 0.05)' },
+          }}
+        >
+          Print all parent codes
+        </Button>
+      </Box>
 
       {isWondeOrg ? renderWondeClassList() : renderManualClassList()}
 
@@ -540,6 +563,13 @@ const ClassManager = () => {
               onClose={() => setQrClass(null)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Whole-school parent QR codes, one class per page */}
+      <Dialog open={schoolQrOpen} onClose={() => setSchoolQrOpen(false)} maxWidth="md" fullWidth>
+        <DialogContent>
+          {schoolQrOpen && <QRCodeSheet scope="school" onClose={() => setSchoolQrOpen(false)} />}
         </DialogContent>
       </Dialog>
     </Paper>

@@ -839,6 +839,108 @@ parentRouter.get('/class/:classId', requireTeacher(), async (c) => {
 });
 
 // ============================================================================
+// POST /api/parent/school/generate
+// Bulk-generate tokens for every active pupil in the org that lacks one.
+// Same work as /generate/:classId without the class filter, so the whole
+// school can be printed in one go — including pupils with no class, who need
+// a code as much as anyone.
+// ============================================================================
+parentRouter.post('/school/generate', requireTeacher(), async (c) => {
+  const db = requireDB(c.env);
+  const organizationId = c.get('organizationId');
+  const academicYear = currentAcademicYear();
+
+  const studentsResult = await db
+    .prepare(
+      `SELECT s.id
+         FROM students s
+        WHERE s.organization_id = ? AND s.is_active = 1
+          AND s.id NOT IN (
+            SELECT student_id FROM parent_access_tokens
+             WHERE organization_id = ? AND academic_year = ? AND revoked_at IS NULL
+          )`
+    )
+    .bind(organizationId, organizationId, academicYear)
+    .all();
+
+  const students = studentsResult.results || [];
+  if (students.length === 0) {
+    return c.json({ generated: 0 });
+  }
+
+  const userId = c.get('userId');
+  const inserts = students.map((s) =>
+    db
+      .prepare(
+        `INSERT INTO parent_access_tokens (id, token, student_id, organization_id, academic_year, created_by)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .bind(generateId(), generateToken(), s.id, organizationId, academicYear, userId)
+  );
+
+  const chunkSize = 50;
+  for (let i = 0; i < inserts.length; i += chunkSize) {
+    await db.batch(inserts.slice(i, i + chunkSize));
+  }
+
+  return c.json({ generated: students.length });
+});
+
+// ============================================================================
+// GET /api/parent/school/tokens
+// Every active token in the org, grouped by class, for the whole-school print
+// sheet. Pupils whose class was retired by a Wonde sync fall into the same
+// unnamed group as those who never had one — both read as "No class" in the
+// app, and a code with no class on it is a code nobody can hand out.
+// ============================================================================
+parentRouter.get('/school/tokens', requireTeacher(), async (c) => {
+  const db = requireDB(c.env);
+  const organizationId = c.get('organizationId');
+  const academicYear = currentAcademicYear();
+
+  const result = await db
+    .prepare(
+      `SELECT pat.id as tokenId,
+              pat.token,
+              pat.student_id as studentId,
+              s.name as studentName,
+              c.id as classId,
+              c.name as className
+         FROM parent_access_tokens pat
+         JOIN students s ON s.id = pat.student_id
+         LEFT JOIN classes c ON c.id = s.class_id AND c.is_active = 1
+        WHERE pat.organization_id = ? AND pat.academic_year = ?
+          AND pat.revoked_at IS NULL AND s.is_active = 1
+        ORDER BY (c.name IS NULL) ASC, c.name ASC, s.name ASC`
+    )
+    .bind(organizationId, academicYear)
+    .all();
+
+  const classes = [];
+  const byClass = new Map();
+  for (const row of result.results || []) {
+    const key = row.classId || 'unassigned';
+    if (!byClass.has(key)) {
+      const group = {
+        classId: row.classId || null,
+        className: row.className || 'No class',
+        tokens: [],
+      };
+      byClass.set(key, group);
+      classes.push(group);
+    }
+    byClass.get(key).tokens.push({
+      tokenId: row.tokenId,
+      token: row.token,
+      studentId: row.studentId,
+      studentFirstName: (row.studentName || '').split(' ')[0],
+    });
+  }
+
+  return c.json({ classes, academicYear });
+});
+
+// ============================================================================
 // GET /api/parent/token/student/:studentId
 // Fetch existing active token for a student (does NOT create one)
 // ============================================================================

@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.126.0] - 2026-09-01
+
+Print every parent QR code in the school in one go, with the class on every card.
+
+### Added
+
+- **"Print all parent codes" in Settings → Manage Classes.** One button produces a code for every child in the school, a class per page, ordered by class name with the children who have no class at the back. Codes are created for anyone who doesn't have one yet, so a child who joined last week is included without anyone remembering to go and generate them. Before this the only way to print a whole school was to open each class in turn.
+- **Every card now shows the class as well as the child's first name.** Once the sheets are cut up you have a pile of small cards with a QR code and a name on each, and no way of telling whose tray they belong in. This applies to the single-class sheets too.
+
+### Fixed
+
+- **Printing from the code sheet no longer prints the app behind it.** The sheet sits in a dialog, which is a fixed-height scrolling box, so a long sheet would have come out as page one followed by blank paper.
+
 ## [3.125.0] - 2026-09-01
 
 Wonde has been sending us the year group all along, in a field we were not reading.
