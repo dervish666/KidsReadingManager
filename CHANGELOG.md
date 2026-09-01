@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.126.1] - 2026-09-01
+
+### Changed
+
+- **The class name goes on the page, not on the cards.** Each sheet of parent codes is headed with its class so a whole page can be handed to the right teacher, and the cards themselves stay as they were: a QR code, the child's first name, the Tally logo, nothing else. The heading now repeats at the top of every page, so a class big enough to run onto a second sheet still says which class it is.
+
 ## [3.126.0] - 2026-09-01
 
 Print every parent QR code in the school in one go, with the class on every card.
@@ -7,7 +13,7 @@ Print every parent QR code in the school in one go, with the class on every card
 ### Added
 
 - **"Print all parent codes" in Settings → Manage Classes.** One button produces a code for every child in the school, a class per page, ordered by class name with the children who have no class at the back. Codes are created for anyone who doesn't have one yet, so a child who joined last week is included without anyone remembering to go and generate them. Before this the only way to print a whole school was to open each class in turn.
-- **Every card now shows the class as well as the child's first name.** Once the sheets are cut up you have a pile of small cards with a QR code and a name on each, and no way of telling whose tray they belong in. This applies to the single-class sheets too.
+- **Each page is headed with its class**, so a printed sheet can go straight to the right teacher. (Corrected in 3.126.1 — the first cut of this put the class on every card as well, which nobody asked for.)
 
 ### Fixed
 

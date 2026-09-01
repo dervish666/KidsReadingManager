@@ -91,16 +91,38 @@ const QRCodeSheet = ({ classId, className, scope = 'class', onClose }) => {
       ? `Parent QR codes: whole school`
       : `Parent QR codes: ${sections[0]?.name || className}`;
 
+  // Rows of three. The grid is a table rather than a CSS grid for one reason:
+  // a <thead> repeats on every printed page, so a class of 30 that spills onto
+  // a second sheet still says which class it is at the top. The cards
+  // themselves carry only the code, the child's first name and the logo.
+  const toRows = (students) => {
+    const rows = [];
+    for (let i = 0; i < students.length; i += COLUMNS) {
+      rows.push(students.slice(i, i + COLUMNS));
+    }
+    return rows;
+  };
+
+  const CELL_PRINT = {
+    WebkitPrintColorAdjust: 'exact',
+    printColorAdjust: 'exact',
+  };
+
   const renderSection = (section, index) => {
+    const rows = toRows(section.students);
     // Pad the final row so the cut lines run straight across to the right edge.
-    const fillerCount = section.students.length
-      ? (COLUMNS - (section.students.length % COLUMNS)) % COLUMNS
-      : 0;
+    const fillerCount = rows.length ? COLUMNS - rows[rows.length - 1].length : 0;
 
     return (
       <Box
         key={section.id}
+        component="table"
         sx={{
+          width: '100%',
+          tableLayout: 'fixed',
+          // Collapsed borders merge each cell's dashed edge with its
+          // neighbour's into one straight line you can guillotine in a stroke.
+          borderCollapse: 'collapse',
           mb: 4,
           // Each class starts on its own sheet, so a printed pile can be split
           // by class without reading a single name.
@@ -109,121 +131,101 @@ const QRCodeSheet = ({ classId, className, scope = 'class', onClose }) => {
           }),
         }}
       >
-        <Typography
-          variant="subtitle1"
-          sx={{
-            fontWeight: 700,
-            color: '#2d5016',
-            fontFamily: '"Nunito", sans-serif',
-            mb: 1,
-          }}
-        >
-          {section.name}
-          <Typography
-            component="span"
-            variant="caption"
-            sx={{ color: 'text.secondary', fontWeight: 500, ml: 1 }}
-          >
-            {section.students.length} {section.students.length === 1 ? 'code' : 'codes'}
-          </Typography>
-        </Typography>
-
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
-            borderTop: CUT_LINE,
-            borderLeft: CUT_LINE,
-            '@media print': {
-              WebkitPrintColorAdjust: 'exact',
-              printColorAdjust: 'exact',
-            },
-          }}
-        >
-          {section.students.map((student) => (
+        <Box component="thead" sx={{ '@media print': { display: 'table-header-group' } }}>
+          <tr>
             <Box
-              key={student.tokenId}
-              sx={{
-                borderRight: CUT_LINE,
-                borderBottom: CUT_LINE,
-                p: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 0.5,
-                '@media print': {
-                  breakInside: 'avoid',
-                  pageBreakInside: 'avoid',
-                  WebkitPrintColorAdjust: 'exact',
-                  printColorAdjust: 'exact',
-                },
-              }}
+              component="th"
+              colSpan={COLUMNS}
+              sx={{ textAlign: 'left', border: 'none', p: 0, pb: 1 }}
             >
-              {/* QR code */}
-              <QRCodeSVG
-                value={getParentUrl(student.token)}
-                size={100}
-                level="M"
-                style={{ display: 'block' }}
-              />
-
-              {/* Student first name */}
               <Typography
                 variant="subtitle1"
-                sx={{
-                  fontWeight: 700,
-                  color: '#2d5016',
-                  fontFamily: '"Nunito", sans-serif',
-                  fontSize: '1rem',
-                  textAlign: 'center',
-                  mt: 0.5,
-                }}
-              >
-                {student.studentFirstName}
-              </Typography>
-
-              {/* Class, so a cut-out card is still identifiable on its own */}
-              <Typography
-                variant="caption"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 600,
-                  letterSpacing: '0.02em',
-                  textAlign: 'center',
-                }}
+                sx={{ fontWeight: 700, color: '#2d5016', fontFamily: '"Nunito", sans-serif' }}
               >
                 {section.name}
-              </Typography>
-
-              {/* Tally branding */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.6 }}>
-                <TallyLogo size={14} color="#2d5016" />
                 <Typography
+                  component="span"
                   variant="caption"
-                  sx={{ color: '#2d5016', fontWeight: 600, fontSize: '0.65rem' }}
+                  sx={{ color: 'text.secondary', fontWeight: 500, ml: 1 }}
                 >
-                  Tally Reading
+                  {section.students.length} {section.students.length === 1 ? 'code' : 'codes'}
                 </Typography>
-              </Box>
+              </Typography>
+            </Box>
+          </tr>
+        </Box>
+
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <Box
+              component="tr"
+              key={row[0].tokenId}
+              sx={{ '@media print': { breakInside: 'avoid', pageBreakInside: 'avoid' } }}
+            >
+              {row.map((student) => (
+                <Box
+                  component="td"
+                  key={student.tokenId}
+                  sx={{ border: CUT_LINE, p: 2, '@media print': CELL_PRINT }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 0.5,
+                    }}
+                  >
+                    {/* QR code */}
+                    <QRCodeSVG
+                      value={getParentUrl(student.token)}
+                      size={100}
+                      level="M"
+                      style={{ display: 'block' }}
+                    />
+
+                    {/* Student first name */}
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 700,
+                        color: '#2d5016',
+                        fontFamily: '"Nunito", sans-serif',
+                        fontSize: '1rem',
+                        textAlign: 'center',
+                        mt: 0.5,
+                      }}
+                    >
+                      {student.studentFirstName}
+                    </Typography>
+
+                    {/* Tally branding */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.6 }}>
+                      <TallyLogo size={14} color="#2d5016" />
+                      <Typography
+                        variant="caption"
+                        sx={{ color: '#2d5016', fontWeight: 600, fontSize: '0.65rem' }}
+                      >
+                        Tally Reading
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              ))}
+
+              {/* Empty cells keep the cut lines straight across the final row */}
+              {rowIndex === rows.length - 1 &&
+                Array.from({ length: fillerCount }).map((_, i) => (
+                  <Box
+                    component="td"
+                    key={`filler-${i}`}
+                    aria-hidden
+                    sx={{ border: CUT_LINE, '@media print': CELL_PRINT }}
+                  />
+                ))}
             </Box>
           ))}
-
-          {/* Empty cells keep the cut lines straight across the final row */}
-          {Array.from({ length: fillerCount }).map((_, i) => (
-            <Box
-              key={`filler-${i}`}
-              aria-hidden
-              sx={{
-                borderRight: CUT_LINE,
-                borderBottom: CUT_LINE,
-                '@media print': {
-                  WebkitPrintColorAdjust: 'exact',
-                  printColorAdjust: 'exact',
-                },
-              }}
-            />
-          ))}
-        </Box>
+        </tbody>
       </Box>
     );
   };
