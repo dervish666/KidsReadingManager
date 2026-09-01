@@ -23,6 +23,23 @@ import { syncUserClassAssignments } from '../utils/classAssignments.js';
 import { assertBatchSize, D1_BATCH_LIMIT } from '../utils/d1Batch.js';
 
 /**
+ * First non-blank value, trimmed. Wonde returns '' as often as it returns
+ * null for a field it has nothing for, and `??` happily stores the empty
+ * string.
+ *
+ * @param {...*} values
+ * @returns {string|null}
+ */
+function firstNonBlank(...values) {
+  for (const value of values) {
+    if (value == null) continue;
+    const trimmed = String(value).trim();
+    if (trimmed) return trimmed;
+  }
+  return null;
+}
+
+/**
  * Maps a Wonde student object to Tally student fields.
  *
  * @param {Object} wondeStudent - Raw student from Wonde API
@@ -33,11 +50,19 @@ export function mapWondeStudent(wondeStudent) {
   const extendedData = wondeStudent.extended_details?.data;
   const classesData = wondeStudent.classes?.data;
   const groupsData = wondeStudent.groups?.data;
+  const yearData = wondeStudent.year?.data;
 
   return {
     wondeStudentId: wondeStudent.id,
     name: `${wondeStudent.forename} ${wondeStudent.surname}`,
-    yearGroup: educationData?.current_nc_year ?? null,
+    // `education_details.current_nc_year` is the documented home of the year
+    // group, and every Wonde connection Tally has seen leaves it empty: all
+    // 2,393 pupils across the three connected schools had a NULL year group.
+    // The `year` relationship — already in the student include, never read
+    // until now — carries the real code for 397 of Cheddar Grove's 424 pupils
+    // (verified against the live API on 2026-09-01), nursery N1/N2 included,
+    // which class-name parsing can never recover from "Willow" or "Cherry".
+    yearGroup: firstNonBlank(educationData?.current_nc_year, yearData?.code),
     senStatus: extendedData?.sen_status ?? null,
     pupilPremium: extendedData?.pupil_premium ? 1 : 0,
     ealStatus: extendedData?.eal_status ?? null,

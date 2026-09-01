@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.125.0] - 2026-09-01
+
+Wonde has been sending us the year group all along, in a field we were not reading.
+
+### Added
+
+- **Pupils synced from Wonde now get their real year group.** Tally read the year from `education_details`, and not one of the three connected schools fills that in, so every synced pupil had a blank year group and Tally guessed the year from the class name instead ("5D" means Year 5). Wonde also publishes the year as a relationship, which Tally was already asking for and then ignoring: it has a real year for 397 of Cheddar Grove's 424 pupils, nursery children included. That guess is now a fallback rather than the only answer. It matters for book recommendations, which use the year to keep suggestions age-appropriate, and for badges, which use it to pick the right key stage. Children in classes named after trees rather than years, Willow and Cherry, could never be placed by the old guess and now can.
+
 ## [3.124.3] - 2026-09-01
 
 The new school year arrived and every class dropdown showed each form twice.

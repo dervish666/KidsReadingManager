@@ -98,6 +98,52 @@ describe('mapWondeStudent', () => {
     });
   });
 
+  // Every Wonde connection Tally has seen leaves current_nc_year empty while
+  // the `year` relationship carries the real code. Verified against the live
+  // API on 2026-09-01: 397 of Cheddar Grove's 424 pupils.
+  describe('year group', () => {
+    const student = (extra) => ({ id: 'Y1', forename: 'Yara', surname: 'Nur', ...extra });
+
+    it('prefers education_details.current_nc_year when the MIS publishes it', () => {
+      const result = mapWondeStudent(
+        student({
+          education_details: { data: { current_nc_year: '5' } },
+          year: { data: { code: '6' } },
+        })
+      );
+      expect(result.yearGroup).toBe('5');
+    });
+
+    it('falls back to the year relationship, nursery codes included', () => {
+      expect(mapWondeStudent(student({ year: { data: { code: 'N2' } } })).yearGroup).toBe('N2');
+      expect(
+        mapWondeStudent(
+          student({
+            education_details: { data: { current_nc_year: null } },
+            year: { data: { code: 'R' } },
+          })
+        ).yearGroup
+      ).toBe('R');
+    });
+
+    it('treats a blank current_nc_year as missing rather than storing it', () => {
+      const result = mapWondeStudent(
+        student({
+          education_details: { data: { current_nc_year: '   ' } },
+          year: { data: { code: '3' } },
+        })
+      );
+      expect(result.yearGroup).toBe('3');
+    });
+
+    it('is null when neither source has anything', () => {
+      expect(mapWondeStudent(student({})).yearGroup).toBeNull();
+      expect(
+        mapWondeStudent(student({ education_details: { data: {} }, year: { data: {} } })).yearGroup
+      ).toBeNull();
+    });
+  });
+
   it('extracts registration group ids, ignoring other group types', () => {
     const wondeStudent = {
       id: 'G123',
