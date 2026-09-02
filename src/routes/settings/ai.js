@@ -20,7 +20,7 @@ import {
 
 import { getDB } from '../../utils/routeHelpers';
 
-import { fetchProviderModels } from './_shared.js';
+import { fetchProviderModels, envKeyFor } from './_shared.js';
 
 const aiSettingsRouter = new Hono();
 
@@ -286,67 +286,87 @@ aiSettingsRouter.post('/ai', requireAdmin(), auditLog('update', 'ai_settings'), 
 });
 
 /**
- * GET /api/settings/ai/models
- * Fetch available models using the organization's stored API key, falling
- * back to a platform key (matching the org's provider if one is stored for
- * it, else the active platform key) so schools on the owner-managed key
- * still see a live model list instead of the static fallback.
+ * GET /api/settings/ai/models?provider=anthropic|openai|google
+ *
+ * Live model list for the picker on the AI settings page. `provider`
+ * defaults to the org's configured provider, else the active platform
+ * provider. The key is resolved down the same ladder as `resolveAiConfig`:
+ * the org's own key (when it is for this provider) → a platform key for this
+ * provider → the environment variable. Whichever rung answers, the response
+ * says which (`source`) so the client can label the list honestly.
+ *
+ * Listing models is deliberately NOT gated on the AI add-on. The add-on
+ * gates *spending* (recommendations, the stats summary); model names are
+ * not a secret, and the page already tells a school "Active key source:
+ * Platform key" — showing them a picker of last year's models underneath
+ * that line is worse than showing the real ones. The old gate is why every
+ * school without the add-on saw the static fallback list.
  */
 aiSettingsRouter.get('/ai/models', requireAdmin(), async (c) => {
   const db = getDB(c.env);
   const organizationId = c.get('organizationId');
+
+  const validProviders = ['anthropic', 'openai', 'google'];
+  const requested = c.req.query('provider') || null;
+  if (requested && !validProviders.includes(requested)) {
+    throw badRequestError('Invalid provider');
+  }
 
   const config = await db
     .prepare('SELECT provider, api_key_encrypted FROM org_ai_config WHERE organization_id = ?')
     .bind(organizationId)
     .first();
 
-  let provider = config?.provider || null;
-  let keyEncrypted = config?.api_key_encrypted || null;
+  const platformKeys = await db
+    .prepare(
+      'SELECT provider, api_key_encrypted, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
+    )
+    .all();
+  const platformRows = platformKeys.results || [];
 
-  if (!keyEncrypted) {
-    // Platform keys are the owner's credentials — only orgs with the paid AI
-    // add-on may exercise them (mirrors the recommendations entitlement gate).
-    const org = await db
-      .prepare('SELECT ai_addon_active FROM organizations WHERE id = ?')
-      .bind(organizationId)
-      .first();
-    if (org?.ai_addon_active) {
-      const platformKeys = await db
-        .prepare(
-          'SELECT provider, api_key_encrypted, is_active FROM platform_ai_keys WHERE api_key_encrypted IS NOT NULL'
-        )
-        .all();
-      const rows = platformKeys.results || [];
-      const row = rows.find((r) => r.provider === provider) || rows.find((r) => r.is_active);
-      if (row) {
-        provider = row.provider;
-        keyEncrypted = row.api_key_encrypted;
-      }
+  const provider =
+    requested || config?.provider || platformRows.find((r) => r.is_active)?.provider || 'anthropic';
+
+  let keyEncrypted = null;
+  let source = 'none';
+  if (config?.api_key_encrypted && config.provider === provider) {
+    keyEncrypted = config.api_key_encrypted;
+    source = 'organization';
+  } else {
+    const row = platformRows.find((r) => r.provider === provider);
+    if (row) {
+      keyEncrypted = row.api_key_encrypted;
+      source = 'platform';
     }
   }
 
-  if (!keyEncrypted) {
-    return c.json({ models: [] });
-  }
-
-  const encSecret = getEncryptionSecret(c.env);
-  if (!encSecret) {
-    return c.json({ models: [] });
-  }
-
   let apiKey;
-  try {
-    apiKey = await decryptSensitiveData(keyEncrypted, encSecret);
-  } catch {
-    return c.json({ models: [] });
+  if (keyEncrypted) {
+    const encSecret = getEncryptionSecret(c.env);
+    if (!encSecret) {
+      return c.json({ provider, source: 'none', models: [] });
+    }
+    try {
+      apiKey = await decryptSensitiveData(keyEncrypted, encSecret);
+    } catch (err) {
+      console.error('[ai/models] could not decrypt stored key', { provider, source, err });
+      return c.json({ provider, source: 'none', models: [] });
+    }
+  } else {
+    apiKey = envKeyFor(c.env, provider);
+    if (apiKey) source = 'environment';
+  }
+
+  if (!apiKey) {
+    return c.json({ provider, source: 'none', models: [] });
   }
 
   try {
-    const models = await fetchProviderModels(provider || 'anthropic', apiKey);
-    return c.json({ models: models || [] });
-  } catch {
-    return c.json({ models: [] });
+    const models = await fetchProviderModels(provider, apiKey);
+    return c.json({ provider, source, models: models || [] });
+  } catch (err) {
+    console.error('[ai/models] provider list failed', { provider, source, err });
+    return c.json({ provider, source, models: [] });
   }
 });
 

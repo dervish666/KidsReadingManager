@@ -445,8 +445,9 @@ describe('Platform AI Keys API Routes', () => {
         const data = await response.json();
 
         expect(response.status).toBe(200);
-        expect(data.models).toHaveLength(2);
-        expect(data.models[0].id).toBe('claude-sonnet-4-6');
+        // Sonnet is outside the low-cost tier and is filtered out of every picker
+        expect(data.models).toHaveLength(1);
+        expect(data.models[0].id).toBe('claude-haiku-4-5-20251001');
       } finally {
         globalThis.fetch = originalFetch;
       }

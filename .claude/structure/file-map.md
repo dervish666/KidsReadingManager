@@ -140,6 +140,7 @@ src/utils/coverPlaceholders.js - Shared SHA-256 hash set + helpers for rejecting
 src/utils/schoolCalendar.js - Term-dates -> calendar context for the AI summary (in term / break / holiday, days since term ended, school days in last 7 and 14); pure and date-injected
 src/utils/aiProviderResolver.js - Shared AI key resolution (BYOK -> add-on-licensed platform key -> env) and failover-chain building; used by book recommendations AND the Stats AI summary
 src/utils/aiCostCap.js - Per-tenant monthly AI cost cap enforcement (org_ai_usage table)
+src/utils/aiModelTiers.js - The low-cost model tier: one id pattern per provider + cheap defaults; filters every model picker and clamps the model resolveAiConfig runs
 src/utils/contentModeration.js - AI output content-moderation layer (age-appropriate filtering)
 src/utils/d1Batch.js - D1 batch operation guard (chunks statements to respect 100-statement limit)
 src/utils/d1Retry.js - Bounded retry for transient D1 failures (retryD1/isTransientD1Error); shared by the nightly crons, the watchdog and the demo reset

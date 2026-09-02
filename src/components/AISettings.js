@@ -24,24 +24,21 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = '/api';
 
-// Curated fallback lists shown before / if the live fetch fails
+// Short built-in lists, shown only when no key of any kind can be found for
+// the provider. Everything else comes live from the provider's models API
+// (GET /api/settings/ai/models?provider=…), so these are a last resort and
+// will always lag: keep them to a few well-known ids and don't try to be
+// complete. Low-cost tier only, like the live list (utils/aiModelTiers.js).
 const STATIC_MODELS = {
-  anthropic: [
-    { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5 (Fast)' },
-    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6 (Balanced)' },
-    { id: 'claude-opus-4-8', name: 'Claude Opus 4.8 (Most Capable)' },
-  ],
+  anthropic: [{ id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5 (Fast)' }],
   openai: [
     { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano (Fast)' },
-    { id: 'gpt-5.1', name: 'GPT-5.1 (Balanced)' },
-    { id: 'gpt-4.1', name: 'GPT-4.1' },
+    { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini' },
     { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
   ],
   google: [
     { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Fast)' },
     { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
-    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
   ],
 };
 
@@ -56,11 +53,42 @@ const AISettings = () => {
   const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [fetchedModels, setFetchedModels] = useState(null); // null = not fetched yet
+  const [liveModels, setLiveModels] = useState({}); // backend provider → live list
+  const [liveSource, setLiveSource] = useState({}); // backend provider → 'organization' | 'platform' | 'environment'
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelFetchError, setModelFetchError] = useState(null);
 
-  // Load existing AI config from /api/settings/ai, then fetch live model list if key exists
+  const backendProviderKey = provider === 'gemini' ? 'google' : provider;
+  const fetchedModels = liveModels[backendProviderKey] || null;
+
+  // Ask the worker for the live list using whatever stored key it can find
+  // for this provider (the school's own, a platform key, or an env var).
+  // Empty means no key: the static list stays. Refetched on every provider
+  // change so switching to OpenAI never shows Anthropic's models.
+  const loadLiveModels = useCallback(
+    async (backendProvider) => {
+      setIsLoadingModels(true);
+      try {
+        const res = await fetchWithAuth(
+          `${API_URL}/settings/ai/models?provider=${encodeURIComponent(backendProvider)}`
+        );
+        if (!res.ok) return;
+        const { models: live, source } = await res.json();
+        if (live && live.length > 0) {
+          setLiveModels((prev) => ({ ...prev, [backendProvider]: live }));
+          setLiveSource((prev) => ({ ...prev, [backendProvider]: source || 'platform' }));
+        }
+      } catch (error) {
+        // Non-fatal — the static list is shown instead, but say so in the console
+        console.warn('Could not load live model list', error);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    },
+    [fetchWithAuth]
+  );
+
+  // Load existing AI config from /api/settings/ai, then the live model list
   useEffect(() => {
     const loadAIConfig = async () => {
       try {
@@ -73,23 +101,7 @@ const AISettings = () => {
           setHasApiKey(config.hasApiKey || false);
           setAvailableProviders(config.availableProviders || {});
           setKeySource(config.keySource || 'none');
-
-          // If a usable key exists (org-level or owner-managed platform key),
-          // silently fetch the live model list — the backend resolves which
-          // stored key to use.
-          if (config.hasApiKey || config.keySource === 'platform') {
-            try {
-              const modelsRes = await fetchWithAuth(`${API_URL}/settings/ai/models`);
-              if (modelsRes.ok) {
-                const { models: live } = await modelsRes.json();
-                if (live && live.length > 0) {
-                  setFetchedModels(live);
-                }
-              }
-            } catch {
-              // Non-fatal — static model list will be shown as fallback
-            }
-          }
+          loadLiveModels(loadedProvider === 'gemini' ? 'google' : loadedProvider);
         }
       } catch (error) {
         console.error('Error loading AI config:', error);
@@ -101,7 +113,7 @@ const AISettings = () => {
     if (fetchWithAuth) {
       loadAIConfig();
     }
-  }, [fetchWithAuth]);
+  }, [fetchWithAuth, loadLiveModels]);
 
   const getDefaultModel = (selectedProvider) => {
     switch (selectedProvider) {
@@ -116,14 +128,15 @@ const AISettings = () => {
     }
   };
 
-  // Returns the model list to display: fetched > static fallback
+  // Returns the model list to display for a provider: live > static fallback
   const getDisplayModels = useCallback(
     (providerKey) => {
       const key = providerKey === 'gemini' ? 'google' : providerKey;
-      if (fetchedModels && fetchedModels.length > 0) return fetchedModels;
+      const live = liveModels[key];
+      if (live && live.length > 0) return live;
       return STATIC_MODELS[key] || [];
     },
-    [fetchedModels]
+    [liveModels]
   );
 
   // Fetch live model list from the provider via our backend proxy
@@ -146,7 +159,8 @@ const AISettings = () => {
         }
         const { models: live } = await response.json();
         if (live && live.length > 0) {
-          setFetchedModels(live);
+          setLiveModels((prev) => ({ ...prev, [backendProvider]: live }));
+          setLiveSource((prev) => ({ ...prev, [backendProvider]: 'organization' }));
           // Keep current selection if it exists in the live list, otherwise pick first
           if (!live.find((m) => m.id === modelPreference)) {
             setModelPreference(live[0].id);
@@ -214,8 +228,8 @@ const AISettings = () => {
     setProvider(newProvider);
     setModelPreference(getDefaultModel(newProvider));
     setApiKey('');
-    setFetchedModels(null);
     setModelFetchError(null);
+    loadLiveModels(newProvider === 'gemini' ? 'google' : newProvider);
   };
 
   if (isLoading) {
@@ -350,9 +364,14 @@ const AISettings = () => {
             value={apiKey}
             onChange={(e) => {
               setApiKey(e.target.value);
-              // Clear fetched models when key is edited so they re-fetch on blur
+              // A new key means a new list: drop this provider's live models
+              // so they re-fetch with the typed key on blur.
               if (fetchedModels) {
-                setFetchedModels(null);
+                setLiveModels((prev) => {
+                  const next = { ...prev };
+                  delete next[backendProviderKey];
+                  return next;
+                });
                 setModelFetchError(null);
               }
             }}
@@ -361,7 +380,7 @@ const AISettings = () => {
             helperText={
               modelFetchError
                 ? modelFetchError
-                : fetchedModels
+                : fetchedModels && liveSource[backendProviderKey] === 'organization'
                   ? `✓ Key verified, ${fetchedModels.length} models loaded`
                   : hasApiKey
                     ? 'Your API key is encrypted and stored securely.'
@@ -395,8 +414,15 @@ const AISettings = () => {
             </Select>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.75 }}>
               {fetchedModels
-                ? 'Live model list from provider.'
-                : 'Showing common models. Enter an API key to load the full list.'}
+                ? `Live list from ${getProviderInfo(backendProviderKey)}, newest first${
+                    liveSource[backendProviderKey] === 'platform'
+                      ? ', via the platform key'
+                      : liveSource[backendProviderKey] === 'environment'
+                        ? ', via the server key'
+                        : ''
+                  }.`
+                : 'No key found for this provider, so this is a short built-in list. Enter a key to load the live one.'}{' '}
+              Only the low-cost tier is offered: book recommendations do not need a frontier model.
             </Typography>
           </FormControl>
 

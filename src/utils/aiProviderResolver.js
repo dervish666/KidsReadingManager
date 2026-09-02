@@ -21,10 +21,16 @@
  * Note the asymmetry in Path 1 vs Path 2: BYOK deliberately bypasses the paid
  * add-on gate (the school is spending its own tokens), but NOT `subscriptionGate()`
  * in middleware/tenant.js, which still blocks a cancelled subscription.
+ *
+ * Whatever path answers, the model is passed through `clampToCheapModel`
+ * (utils/aiModelTiers.js): only the provider's low-cost tier ever runs. The
+ * pickers already filter to that tier, so a clamp here means a stored
+ * preference pre-dates the rule or was written by hand — it is logged.
  */
 
 import { decryptSensitiveData, getEncryptionSecret } from './crypto.js';
 import { badRequestError } from '../middleware/errorHandler.js';
+import { clampToCheapModel } from './aiModelTiers.js';
 
 /**
  * Thrown when an organisation is not entitled to use the platform's AI key.
@@ -77,7 +83,11 @@ export async function resolveAiConfig({ db, env, organizationId, notEntitledMess
       return {
         provider: dbConfig.provider || 'anthropic',
         apiKey: decryptedApiKey,
-        model: dbConfig.model_preference,
+        model: safeModel(
+          dbConfig.provider || 'anthropic',
+          dbConfig.model_preference,
+          'organization'
+        ),
         source: 'organization',
       };
     } catch (decryptError) {
@@ -109,7 +119,7 @@ export async function resolveAiConfig({ db, env, organizationId, notEntitledMess
       return {
         provider: platformKey.provider,
         apiKey: decryptedKey,
-        model: platformKey.model_preference || null,
+        model: safeModel(platformKey.provider, platformKey.model_preference, 'platform'),
         source: 'platform',
       };
     } catch (decryptError) {
@@ -134,9 +144,23 @@ export async function resolveAiConfig({ db, env, organizationId, notEntitledMess
   return {
     provider: envProvider,
     apiKey: env[ENV_KEY_BY_PROVIDER[envProvider]],
-    model: null,
+    model: safeModel(envProvider, null, 'environment'),
     source: 'environment',
   };
+}
+
+/**
+ * Clamp a stored model preference to the low-cost tier, logging when it had
+ * to change so a rogue row is visible rather than silently rewritten.
+ */
+function safeModel(provider, preference, source) {
+  const { model, clamped } = clampToCheapModel(provider, preference);
+  if (clamped) {
+    console.warn(
+      `[ai-config] ${source} preference "${preference}" for ${provider} is outside the low-cost tier; running ${model} instead`
+    );
+  }
+  return model;
 }
 
 /**
@@ -173,7 +197,11 @@ export async function buildFailoverChain({ db, env, primary }) {
       if (configs.some((cfg) => cfg.provider === row.provider)) continue;
       try {
         const key = await decryptSensitiveData(row.api_key_encrypted, encSecret);
-        configs.push({ provider: row.provider, apiKey: key, model: row.model_preference });
+        configs.push({
+          provider: row.provider,
+          apiKey: key,
+          model: safeModel(row.provider, row.model_preference, 'platform'),
+        });
       } catch {
         // Undecryptable fallback key — skip it, the primary still works.
         // Warn so a rotated ENCRYPTION_KEY doesn't silently thin the chain.
@@ -187,7 +215,11 @@ export async function buildFailoverChain({ db, env, primary }) {
   for (const [provider, envKey] of Object.entries(ENV_KEY_BY_PROVIDER)) {
     const envApiKey = env[envKey];
     if (envApiKey && !configs.some((cfg) => cfg.provider === provider)) {
-      configs.push({ provider, apiKey: envApiKey, model: null });
+      configs.push({
+        provider,
+        apiKey: envApiKey,
+        model: safeModel(provider, null, 'environment'),
+      });
     }
   }
 

@@ -246,3 +246,74 @@ describe('buildFailoverChain', () => {
     expect(chain.map((c) => c.provider)).toEqual(['anthropic', 'openai', 'google']);
   });
 });
+
+describe('resolveAiConfig — low-cost tier clamp', () => {
+  let warnSpy;
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it('replaces a frontier BYOK preference with the cheap default and warns', async () => {
+    const db = makeDb({
+      orgConfig: {
+        provider: 'anthropic',
+        api_key_encrypted: await encryptSensitiveData('sk-school-key', SECRET),
+        model_preference: 'claude-fable-5-1',
+        is_enabled: 1,
+      },
+      org: { ai_addon_active: 0 },
+    });
+    const config = await resolve(db);
+    expect(config.model).toBe('claude-haiku-4-5');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('claude-fable-5-1'));
+  });
+
+  it('replaces a frontier platform preference — the owner cannot opt in by hand either', async () => {
+    const db = makeDb({
+      org: { ai_addon_active: 1 },
+      activePlatformKey: {
+        provider: 'openai',
+        api_key_encrypted: await encryptSensitiveData('sk-platform', SECRET),
+        model_preference: 'gpt-5.6',
+      },
+    });
+    const config = await resolve(db);
+    expect(config).toMatchObject({ source: 'platform', model: 'gpt-5.4-nano' });
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('fills a missing preference with the cheap default without warning', async () => {
+    const db = makeDb({
+      org: { ai_addon_active: 1 },
+      activePlatformKey: {
+        provider: 'google',
+        api_key_encrypted: await encryptSensitiveData('g-platform', SECRET),
+        model_preference: null,
+      },
+    });
+    const config = await resolve(db);
+    expect(config.model).toBe('gemini-2.5-flash');
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('clamps fallback keys in the failover chain too', async () => {
+    const db = makeDb({
+      platformKeys: [
+        {
+          provider: 'anthropic',
+          api_key_encrypted: await encryptSensitiveData('a-key', SECRET),
+          model_preference: 'claude-opus-5',
+        },
+      ],
+    });
+    const chain = await buildFailoverChain({
+      db,
+      env: ENV,
+      primary: { provider: 'openai', apiKey: 'sk', model: 'gpt-5.4-nano' },
+    });
+    expect(chain[1]).toMatchObject({ provider: 'anthropic', model: 'claude-haiku-4-5' });
+  });
+});

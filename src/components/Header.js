@@ -178,7 +178,12 @@ const Header = ({ currentTab, onOpenNews }) => {
           <TallyLogo size={22} />
         </Box>
 
-        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+        {/* minWidth: 0 matters — without it the ticker's no-wrap headline sets
+            this box's minimum width, a long headline shoves the class filter
+            and account chips onto a second row, and the next short headline
+            lets them back up. The ticker truncates instead, and its width is
+            whatever is left after the right-hand controls, which is stable. */}
+        <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
           <Typography
             variant="h5"
             component="div"
