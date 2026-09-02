@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-24",
+  "generatedAt": "2026-09-02",
   "issue": "September 2026",
   "title": "Reading News",
-  "intro": "A back-to-school issue: a new Children's Laureate, a brand new prize worth £50,000, MPs asking for a library in every primary, and Biff, Chip and Kipper quietly turning forty.",
+  "intro": "A back-to-school issue: a new Children's Laureate, a £50,000 prize for books aimed at 8 to 12-year-olds, MPs asking for a library in every primary, a Horrible History of football, and Biff, Chip and Kipper quietly turning forty.",
   "isPreview": false,
   "items": [
     {
@@ -12,7 +12,7 @@
       "book": "A Bad Spell for the Worst Witch",
       "rank": 1,
       "kind": "spotlight",
-      "summary": "The Worst Witch is still the most-read series across our schools, but Murphy wrote for much younger readers too. Peace at Last (1980), Whatever Next! (1983) and Five Minutes' Peace (1986) are read-alouds a new Reception or Year 1 class can meet in September, and Five Minutes' Peace alone has sold over five million copies. Worth knowing when the Y3s are hogging Miss Cackle's Academy: publishers turned The Worst Witch down at first, telling Murphy that children would be frightened by a school for witches.",
+      "summary": "The Worst Witch is still the most-read series across our schools, but Murphy wrote for much younger readers too. Peace at Last (1980), Whatever Next! (1983) and Five Minutes' Peace (1986) are read-alouds a new Reception or Year 1 class can meet in September, and Five Minutes' Peace alone has sold over five million copies. Publishers turned The Worst Witch down at first. They told Murphy a school for witches would frighten children.",
       "source": "Penguin Books",
       "link": "https://www.penguin.co.uk/series/WOR/the-worst-witch"
     },
@@ -23,7 +23,7 @@
       "book": "A Cat in the Tree",
       "rank": 4,
       "kind": "news",
-      "summary": "Oxford University Press has published the Oxford Reading Tree since 1986, which makes 2026 the fortieth year of Roderick Hunt's stories and Alex Brychta's illustrations. Your schools logged Hunt 22 times this year, mostly the early levels. If you fancy marking it, the magic key and the four decades of children who have followed it are an easy assembly, and Oxford Owl has the free ebook library for home reading.",
+      "summary": "Oxford University Press has published the Oxford Reading Tree since 1986, which makes 2026 the fortieth year of Roderick Hunt's stories and Alex Brychta's pictures. Most of the reads logged across our schools are the early levels, where the magic key first appears. If you fancy marking it, four decades of children following that key is an easy assembly, and Oxford Owl has a free ebook library for home reading.",
       "source": "Oxford Owl, Oxford University Press",
       "link": "https://home.oxfordowl.co.uk/bookshop/read-with-oxford/biff-chip-and-kipper/"
     },
@@ -34,7 +34,7 @@
       "book": "A Blast from the Past",
       "rank": 7,
       "kind": "spotlight",
-      "summary": "Rob Childs was a Leicestershire teacher who coached school football, cricket and cross-country before he wrote any of this, which is why the matches read like someone has actually stood on the touchline. The Big Match books are still in print with Penguin alongside the County Cup series, and they are short, fast and built for the child who has decided reading is not for them. September is the moment they work best.",
+      "summary": "Rob Childs was a Leicestershire teacher who coached school football, cricket and cross-country before he wrote any of this, which is why the matches read like someone who has stood on the touchline. The Big Match books are still in print with Penguin alongside the County Cup series. They are short and fast, built for the child who has decided reading is not for them, and September is when they work best.",
       "source": "Penguin Books",
       "link": "https://www.penguin.co.uk/authors/184608/rob-childs"
     },
@@ -45,9 +45,31 @@
       "book": "Farm Boy",
       "rank": 8,
       "kind": "release",
-      "summary": "Down Burrow Lane is Morpurgo's account of fifty years on a remote Devon farm, the one that gave him War Horse, Private Peaceful and Farm Boy, which your schools are reading now. He and Clare moved there as a young schoolteacher and his wife and went on to welcome more than 100,000 city children through their charity Farms for City Children, which turns fifty this year too. Hachette publishes it in hardback at £20 on 17 September.",
+      "summary": "Down Burrow Lane is Morpurgo's account of fifty years on a remote Devon farm, the one that gave him War Horse, Private Peaceful and Farm Boy. He and Clare moved there as a young schoolteacher and his wife, and their charity Farms for City Children has since welcomed more than 100,000 city children to the same fields. It turns fifty this year too. Hachette publishes the book in hardback at £20 on 17 September.",
       "source": "Hachette Children's Group",
       "link": "https://www.hachette.co.uk/titles/michael-morpurgo-2/down-burrow-lane/9781399760119/"
+    },
+    {
+      "id": "caroline-lawrence-roman-mysteries-2026",
+      "headline": "Seventeen Roman Mysteries, a BBC series, and a free set of teaching notes",
+      "author": "Caroline Lawrence",
+      "book": "The Enemies of Jupiter",
+      "rank": 9,
+      "kind": "spotlight",
+      "summary": "The Enemies of Jupiter is book seven of seventeen, so a child who has just finished it has ten more to go, and the whole run was televised by the BBC in 2007 and 2008. Lawrence's own site has teaching resources for the series and details of school visits, and her latest book, Pantheon (2024), is a companion to the characters of Greek myth for the reader who wants to move from Romans to Greeks.",
+      "source": "Caroline Lawrence",
+      "link": "https://carolinelawrence.com/"
+    },
+    {
+      "id": "horrible-histories-football-2026",
+      "headline": "Horrible Histories has done football, in time for the World Cup",
+      "author": "Terry Deary",
+      "book": "The Awful Egyptians",
+      "rank": 12,
+      "kind": "release",
+      "summary": "Horrible Histories: Football came out from Scholastic on 7 May, illustrated by Martin Brown, and runs from the medieval game with no rules beyond not deliberately killing the other side to the Christmas Day match of 1914. For the child who has read every Awful, Terrible and Vile volume and now only wants to talk about the World Cup, this is the bridge. Paperback, ISBN 9780702344800.",
+      "source": "Scholastic",
+      "link": "https://booksupstairs.ie/product/football/"
     }
   ],
   "events": [
@@ -64,7 +86,7 @@
       "date": "2026-09-16",
       "name": "Julia Donaldson's birthday",
       "kind": "birthday",
-      "blurb": "Born 16 September 1948, and still the safest bet in any infant classroom. Three days after Roald Dahl Day, if you want to run one story week rather than two separate things.",
+      "blurb": "Born 16 September 1948, and still the safest bet in any infant classroom. Three days after Roald Dahl Day, if you would rather run one story week than two separate things.",
       "link": "https://www.juliadonaldson.co.uk/"
     },
     {
@@ -84,40 +106,48 @@
       "link": "https://www.michaelmorpurgo.com/"
     },
     {
-      "id": "world-book-day-2027",
-      "date": "2027-03-04",
-      "name": "World Book Day 2027",
+      "id": "green-libraries-week-2026",
+      "date": "2026-10-21",
+      "name": "Green Libraries Week",
       "kind": "event",
-      "blurb": "Thursday 4 March. Far off, but it goes in the diary now because the £1 book list and the costume panic both arrive sooner than anyone expects.",
-      "link": "https://www.worldbookday.com/"
+      "blurb": "Wednesday 21 to Wednesday 28 October, CILIP's climate-themed week for libraries. This year it is about climate facts and spotting misinformation, which is a ready-made non-fiction lesson if your local library is running something.",
+      "link": "https://www.cilip.org.uk/advocacy/research-and-development/green-libraries-campaign/green-libraries-week/"
+    },
+    {
+      "id": "national-non-fiction-november-2026",
+      "date": "2026-11-01",
+      "name": "National Non-Fiction November",
+      "kind": "event",
+      "blurb": "The whole of November, run by the Federation of Children's Book Groups. The child who will not touch a story but knows every fact about sharks gets a month where that counts as reading. World Nursery Rhyme Week sits inside it, 9 to 13 November, for the youngest.",
+      "link": "https://literacytrust.org.uk/resources/literacy-teaching-calendar/"
     }
   ],
   "general": [
     {
       "id": "patrice-lawrence-laureate-2026-2028",
       "label": "Reading news",
-      "text": "Patrice Lawrence MBE is the new Waterstones Children's Laureate, the fourteenth, announced on 7 July 2026 and in post until 2028. She is following Frank Cottrell-Boyce, and her theme is shared and sociable reading rather than solitary reading.",
+      "text": "Patrice Lawrence MBE is the new Waterstones Children's Laureate, the fourteenth, announced on 7 July 2026 and in post until 2028. She follows Frank Cottrell-Boyce, and her theme is shared and sociable reading rather than reading alone.",
       "source": "BookTrust",
       "link": "https://www.booktrust.org.uk/about-us/news-updates/patrice-lawrence-mbe-announced-as-waterstones-childrens-laureate-2026-2028/"
     },
     {
       "id": "childrens-booker-prize-first-year",
       "label": "Reading news",
-      "text": "The Booker Prize Foundation has launched a Children's Booker Prize for fiction aimed at 8 to 12-year-olds. The winner takes £50,000, each of the eight shortlisted authors gets £2,500, and three children sit on the panel that picks the winner. Shortlist in late November 2026, winner in February 2027.",
+      "text": "The Booker Prize Foundation has launched a Children's Booker Prize for fiction aimed at 8 to 12-year-olds. The winner takes £50,000, each of the eight shortlisted authors gets £2,500, and three children sit on the panel that picks the winner. Frank Cottrell-Boyce chairs the first jury. Shortlist in late November 2026, winner in February 2027.",
       "source": "The Booker Prizes",
       "link": "https://thebookerprizes.com/the-childrens-booker-prize"
     },
     {
       "id": "education-committee-reading-for-pleasure-2026",
       "label": "Worth knowing",
-      "text": "The cross-party Education Committee reported on 17 July 2026 that every state primary and secondary should have a funded library as a statutory requirement, that every child in England should get a library card at birth, and that the government should commit to a National Reading Guarantee from birth to 18.",
+      "text": "The cross-party Education Committee reported on 17 July 2026 that every state primary and secondary should have a funded library by law, that every child in England should get a library card at birth, and that the government should commit to a National Reading Guarantee from birth to 18.",
       "source": "National Literacy Trust, on the Education Select Committee report",
       "link": "https://literacytrust.org.uk/blog/what-does-the-education-select-committee-report-tell-us/"
     },
     {
       "id": "national-year-of-reading-autumn-2026",
       "label": "Did you know?",
-      "text": "The autumn term of the National Year of Reading has the theme The Community, about schools working with parents and their local public library rather than doing reading alone. The National Literacy Trust's toolkits and webinars are free, and you can join partway through.",
+      "text": "The autumn term of the National Year of Reading has the theme The Community: schools working with parents and the local public library rather than doing reading alone. The National Literacy Trust's toolkits and webinars are free, and you can join partway through.",
       "source": "National Literacy Trust",
       "link": "https://literacytrust.org.uk/about-us/national-year-of-reading-2026/schools/"
     }
