@@ -34,7 +34,7 @@ src/routes/students/streak.js - GET /:id/streak, POST /recalculate-streaks; expo
 src/routes/students/bulk.js - POST /bulk — CSV bulk import with name dedup and chunked batch insert
 src/routes/students/gdpr.js - DELETE /:id/erase (Article 17), PUT /:id/restrict (Article 18), PUT /:id/ai-opt-out, GET /:id/export (Article 15 SAR JSON/CSV)
 src/routes/books.js - Books entry router; mounts books/ sub-routers only (33 lines)
-src/routes/books/core.js - Core book CRUD (list, search, count, get, create, update, delete, clear-library, enrich); owns ORG_BOOK_SELECT
+src/routes/books/core.js - Core book CRUD (list, search, count, get, create, update, delete, clear-library, enrich); owns ORG*BOOK_SELECT
 src/routes/books/recommendations.js - GET /library-search (DB-only scoring), GET /ai-suggestions (AI provider + cache + GDPR checks)
 src/routes/books/isbn.js - GET /isbn/:isbn (D1 → OpenLibrary fallback), POST /scan (link/preview/create), GET /search-external (OpenLibrary typeahead)
 src/routes/books/import.js - POST /bulk (dedup + batch insert), POST /import/preview (categorise matches), POST /import/confirm (batched D1 execute)
@@ -43,7 +43,7 @@ src/routes/classes.js - GET/POST/PUT/DELETE class management, GET/PUT class goal
 src/routes/genres.js - GET/POST/PUT/DELETE genre management
 src/routes/covers.js - GET book covers; R2 cache + OpenLibrary → Google Books → Hardcover fallback (ISBN via /:type/:key, title+author via /search)
 src/routes/users/core.js - Core user CRUD + admin password reset
-src/routes/users.js - Core user CRUD (list, get, create, update, soft-delete) + password reset; mounts users/_ sub-routers
+src/routes/users.js - Core user CRUD (list, get, create, update, soft-delete) + password reset; mounts users/* sub-routers
 src/routes/users/gdpr.js - DELETE /:id/erase (Article 17 hard delete), GET /:id/export (Article 15 SAR JSON/CSV)
 src/routes/users/classes.js - GET /:id/classes, PUT /:id/classes — class assignment management per user
 src/routes/organization/core.js - Core organization CRUD (current, owner list, stats, get/create/update/soft-delete)
@@ -140,6 +140,7 @@ src/utils/coverPlaceholders.js - Shared SHA-256 hash set + helpers for rejecting
 src/utils/schoolCalendar.js - Term-dates -> calendar context for the AI summary (in term / break / holiday, days since term ended, school days in last 7 and 14); pure and date-injected
 src/utils/aiProviderResolver.js - Shared AI key resolution (BYOK -> add-on-licensed platform key -> env) and failover-chain building; used by book recommendations AND the Stats AI summary
 src/utils/aiCostCap.js - Per-tenant monthly AI cost cap enforcement (org_ai_usage table)
+src/utils/classOverview.js - Pure helpers for the teacher overview dialog: resolveTeacherClasses (JWT assigned ids → teacher-name match) and summariseClass (reads this week, status split, streaks, catch-up list)
 src/utils/aiModelTiers.js - The low-cost model tier: one id pattern per provider + cheap defaults; filters every model picker and clamps the model resolveAiConfig runs
 src/utils/contentModeration.js - AI output content-moderation layer (age-appropriate filtering)
 src/utils/d1Batch.js - D1 batch operation guard (chunks statements to respect 100-statement limit)
@@ -178,6 +179,7 @@ src/components/legal/LegalHub.js - /legal index hub linking all legal & complian
 src/components/legal/LegalDocPage.js - Renders a public/legal/\*.md document at /legal/<slug> (react-markdown)
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
+src/components/TeacherOverviewDialog.js - Opened from the header name chip: signed-in user details plus a glance at their class(es) — pupils, read today/this week, needs attention, not read, streaks, who to catch up with. DataContext only, no request
 src/components/SupportTicketManager.js - Owner-only support ticket list with detail panel, status management, internal notes
 src/components/PlatformSettings.js - Owner-only platform AI key management (per-provider keys, active provider selection)
 src/components/BookMetadataSettings.js - Simplified admin view: enrichment status + Fill Missing

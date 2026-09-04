@@ -23,6 +23,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import SupportModal from './SupportModal';
+import TeacherOverviewDialog from './TeacherOverviewDialog';
 import ReadingNewsTicker from './news/ReadingNewsTicker';
 
 // How often the header re-checks for new celebration events (band-ups, badges)
@@ -46,6 +47,7 @@ const Header = ({ currentTab, onOpenNews }) => {
   // State for school selector dropdown
   const [schoolAnchorEl, setSchoolAnchorEl] = useState(null);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const schoolMenuOpen = Boolean(schoolAnchorEl);
 
   // Reading News feed (static, same-origin) — drives the header ticker.
@@ -402,17 +404,20 @@ const Header = ({ currentTab, onOpenNews }) => {
             )}
 
             {/* Signed-in identity — lets anyone confirm at a glance whose
-                account is in use, on a shared classroom device or otherwise. */}
+                account is in use, on a shared classroom device or otherwise.
+                Click opens the teacher overview: who they are, their class at a glance. */}
             {user?.name && (
               <Tooltip
                 title={`Signed in as ${user.name}${user.email ? ` (${user.email})` : ''}${
                   roleLabel ? ` · ${roleLabel}` : ''
-                }`}
+                }. Click for your class overview.`}
               >
                 <Chip
                   icon={<PersonOutlineIcon sx={{ fontSize: 16 }} />}
                   label={user.name}
-                  aria-label={`Signed in as ${user.name}${roleLabel ? `, ${roleLabel}` : ''}`}
+                  aria-label={`Signed in as ${user.name}${roleLabel ? `, ${roleLabel}` : ''}. Open your overview`}
+                  clickable
+                  onClick={() => setProfileOpen(true)}
                   sx={{
                     backgroundColor: 'rgba(107, 142, 107, 0.15)',
                     color: 'primary.dark',
@@ -471,6 +476,7 @@ const Header = ({ currentTab, onOpenNews }) => {
         onClose={() => setSupportOpen(false)}
         currentPage={currentTab}
       />
+      <TeacherOverviewDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
     </AppBar>
   );
 };
