@@ -178,11 +178,15 @@ const Header = ({ currentTab, onOpenNews }) => {
           <TallyLogo size={22} />
         </Box>
 
-        {/* minWidth: 0 matters — without it the ticker's no-wrap headline sets
-            this box's minimum width, a long headline shoves the class filter
-            and account chips onto a second row, and the next short headline
-            lets them back up. The ticker truncates instead, and its width is
-            whatever is left after the right-hand controls, which is stable. */}
+        {/* This box holds the title, the ticker and the class filter, and the
+            Toolbar is allowed to wrap. Wrapping is decided on natural sizes,
+            and the ticker's no-wrap headline used to count towards this box's
+            natural size, so a long headline pushed the account chips onto a
+            second row (ticker: full width) and the next short one let them
+            back up (ticker: narrow). `width: 0` on the ticker's box below
+            makes it contribute nothing to that decision; minWidth: 0 here
+            lets the box shrink rather than overflow. Verified in-page on
+            2026-09-02: a 110-character headline went from three rows to one. */}
         <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
           <Typography
             variant="h5"
@@ -202,7 +206,15 @@ const Header = ({ currentTab, onOpenNews }) => {
 
           {/* Reading News ticker — rotates headlines + today's celebrations */}
           {isAuthenticated && (
-            <Box sx={{ flex: 1, minWidth: 0, mr: 2, display: { xs: 'none', sm: 'block' } }}>
+            <Box
+              sx={{
+                flex: 1,
+                width: 0, // see the note on the parent box: stops headlines resizing the row
+                minWidth: 0,
+                mr: 2,
+                display: { xs: 'none', sm: 'block' },
+              }}
+            >
               <ReadingNewsTicker
                 data={newsData}
                 liveEvents={tickerEvents}
