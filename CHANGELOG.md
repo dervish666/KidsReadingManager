@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.131.1] - 2026-09-10
+
+### Fixed
+
+- **The demo school still said "160 days ago" for every pupil.** The reset moved the reading sessions forward but not the cached last-read date on each pupil, so the Students table, priority list and Needs Attention all stayed red. Both move together now.
+- **The profile panel showed "Year 4 Year Year 4".** Year group is shown once, and not at all when it just repeats the class name.
+
 ## [3.131.0] - 2026-09-10
 
 The Achievements page has been repainted. Same badges, same goals, same garden, but it now looks like the rest of the app was drawn by the same hand.

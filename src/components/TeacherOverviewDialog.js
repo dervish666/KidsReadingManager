@@ -24,6 +24,16 @@ import { useUI } from '../contexts/UIContext';
 import { resolveTeacherClasses, summariseClass } from '../utils/classOverview';
 import ProfileEditor from './ProfileEditor';
 
+// Year group arrives as "4", "R", "N1" or already as "Year 4" depending on
+// the source (Wonde codes, parsed class names, admin-set). Show it once and
+// not at all when it just repeats the class name.
+function yearGroupLabel(cls) {
+  const yg = (cls.yearGroup || '').toString().trim();
+  if (!yg) return '';
+  const label = /^\d+$/.test(yg) ? `Year ${yg}` : yg;
+  return label.toLowerCase() === (cls.name || '').trim().toLowerCase() ? '' : label;
+}
+
 const ROLE_LABEL = {
   owner: 'Owner',
   admin: 'Administrator',
@@ -106,9 +116,9 @@ function ClassCard({ cls, summary, onView }) {
         <Box sx={{ minWidth: 0 }}>
           <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', lineHeight: 1.2 }}>
             {cls.name}
-            {cls.yearGroup ? (
+            {yearGroupLabel(cls) ? (
               <Typography component="span" sx={{ color: 'text.secondary', fontWeight: 600, ml: 1 }}>
-                Year {cls.yearGroup}
+                {yearGroupLabel(cls)}
               </Typography>
             ) : null}
           </Typography>

@@ -237,6 +237,21 @@ function shiftDateString(value, days) {
   return isoDate(new Date(ms + days * DAY_MS)) + value.slice(10);
 }
 
+/**
+ * Copy of student rows with the cached last-read and streak-start dates moved
+ * by `days`, to match the sessions. `students.last_read_date` is what the
+ * Students table, the priority list and Needs Attention read, so shifting the
+ * sessions alone left every pupil "160 days ago" and flagged red.
+ */
+export function shiftStudentRows(rows, days) {
+  if (!days) return rows;
+  return rows.map((row) => ({
+    ...row,
+    last_read_date: shiftDateString(row.last_read_date, days),
+    streak_start_date: shiftDateString(row.streak_start_date, days),
+  }));
+}
+
 /** Copy of `rows` with session_date, created_at and updated_at moved by `days`. */
 export function shiftSessionRows(rows, days) {
   if (!days) return rows;
@@ -491,7 +506,12 @@ export async function resetDemoData(db, kv = null) {
     if (snapshotRows.length === 0) continue;
 
     const { rows: liveRows, skipped } = filterLiveRefs(table, snapshotRows, referencedIds);
-    const rows = table === 'reading_sessions' ? shiftSessionRows(liveRows, shiftDays) : liveRows;
+    const rows =
+      table === 'reading_sessions'
+        ? shiftSessionRows(liveRows, shiftDays)
+        : table === 'students'
+          ? shiftStudentRows(liveRows, shiftDays)
+          : liveRows;
     if (skipped > 0) {
       skippedRows += skipped;
       const targets = EXTERNAL_REFS[table].map((r) => r.table).join('/');

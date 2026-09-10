@@ -308,4 +308,15 @@ describe('session date shift', () => {
     expect(row.updated_at).toBeUndefined();
     expect(row.notes).toBe('x');
   });
+
+  it("moves the students' cached last-read and streak dates with the sessions", async () => {
+    const { shiftStudentRows } = await import('../../services/demoReset.js');
+    const [row] = shiftStudentRows(
+      [{ name: 'Ben', last_read_date: '2026-03-25', streak_start_date: null, current_streak: 3 }],
+      154
+    );
+    expect(row.last_read_date).toBe('2026-08-26');
+    expect(row.streak_start_date).toBeNull();
+    expect(row.current_streak).toBe(3);
+  });
 });
