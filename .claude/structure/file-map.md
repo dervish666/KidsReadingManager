@@ -265,8 +265,8 @@ src/components/sessions/StudentInfoCard.js - Student info during session entry
 
 ## Frontend Components - Badges
 
-src/components/badges/BadgeIcon.js - Single badge circle with tier gradient and category icon
-src/components/badges/GardenHeader.js - Layered watercolor PNG garden header; 8 elements appear progressively as badges are earned (seedling→sprout→bloom→full garden)
+src/components/badges/BadgeIcon.js - Painted rosette per badge family (assets/badge-*.webp) with a tier pip; exports BadgeArt (artwork only), FAMILY_ART, TIER_COLORS, tierLabelFor
+src/components/badges/GardenHeader.js - Painted garden scene per stage (assets/garden-scene-*.webp) cross-faded by badge count, with the growth plant and signpost layered on top
 src/components/badges/BadgeCollection.js - Grid of earned badges + near-miss progress bars
 src/components/badges/BadgeCelebration.js - Unlock celebration dialog shown after session save
 src/components/badges/BandCelebration.js - Band-up celebration dialog (from→to band transition)
@@ -302,7 +302,7 @@ src/components/stats/NeedsAttentionTab.js - Students needing reading attention t
 src/components/stats/ReadingTimelineChart.js - Reading timeline line chart
 src/components/stats/ReadingFrequencyChart.js - Reading frequency bar chart
 src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
-src/components/stats/AchievementsTab.js - Achievements tab: class-wide badge progress with expandable per-student drill-down
+src/components/stats/AchievementsTab.js - Achievements tab: garden hero + class goals, then a badge board (one tile per family, tiers as counts) opening a per-student dialog; exports BADGE_FAMILIES
 
 ## Frontend Components - News
 

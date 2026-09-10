@@ -267,3 +267,45 @@ describe('resetDemoData — catalogue drift', () => {
     expect(kv.put).toHaveBeenCalled();
   });
 });
+
+describe('session date shift', () => {
+  it('slides the newest session into the week before today, in whole weeks', async () => {
+    const { sessionDateShiftDays } = await import('../../services/demoReset.js');
+    const rows = [{ session_date: '2026-04-08' }, { session_date: '2026-01-07' }];
+    // 2026-09-10: yesterday is 155 days after 2026-04-08; floor to 154 (22 weeks)
+    expect(sessionDateShiftDays(rows, new Date('2026-09-10T12:00:00Z'))).toBe(154);
+  });
+
+  it('keeps the weekday: shifted dates fall on the same day of the week', async () => {
+    const { sessionDateShiftDays, shiftSessionRows } = await import('../../services/demoReset.js');
+    const rows = [{ session_date: '2026-03-25', created_at: '2026-03-25T15:30:00Z' }];
+    const days = sessionDateShiftDays(rows, new Date('2026-09-10T12:00:00Z'));
+    const [shifted] = shiftSessionRows(rows, days);
+    expect(new Date(shifted.session_date).getUTCDay()).toBe(new Date('2026-03-25').getUTCDay());
+    expect(shifted.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T15:30:00Z$/);
+    expect(shifted.session_date < '2026-09-10').toBe(true);
+    expect(shifted.session_date >= '2026-09-03').toBe(true);
+  });
+
+  it('shifts nothing when the snapshot is already current or empty', async () => {
+    const { sessionDateShiftDays, shiftSessionRows } = await import('../../services/demoReset.js');
+    expect(sessionDateShiftDays([], new Date('2026-09-10T12:00:00Z'))).toBe(0);
+    expect(
+      sessionDateShiftDays([{ session_date: '2026-09-09' }], new Date('2026-09-10T12:00:00Z'))
+    ).toBe(0);
+    const rows = [{ session_date: '2026-09-09' }];
+    expect(shiftSessionRows(rows, 0)).toBe(rows);
+  });
+
+  it('leaves non-date fields and null timestamps alone', async () => {
+    const { shiftSessionRows } = await import('../../services/demoReset.js');
+    const [row] = shiftSessionRows(
+      [{ session_date: '2026-01-07', created_at: null, updated_at: undefined, notes: 'x' }],
+      7
+    );
+    expect(row.session_date).toBe('2026-01-14');
+    expect(row.created_at).toBeNull();
+    expect(row.updated_at).toBeUndefined();
+    expect(row.notes).toBe('x');
+  });
+});

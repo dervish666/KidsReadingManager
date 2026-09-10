@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, Paper, Chip, Skeleton, Button } from '@mui/material';
+import { Box, Typography, Paper, Skeleton, Button } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
+import { BadgeArt } from './BadgeIcon';
+import { BADGE_DEFINITIONS } from '../../utils/badgeDefinitions';
 
 /** ticker_events timestamps are UTC 'YYYY-MM-DD HH:MM:SS' */
 const parseUtc = (s) => new Date(`${s.replace(' ', 'T')}Z`);
@@ -18,17 +19,16 @@ const formatWhen = (createdAt) => {
   return isToday ? time : `Yesterday ${time}`;
 };
 
-const TYPE_STYLES = {
-  band: {
-    icon: <TrendingUpIcon sx={{ color: '#6B8E6B' }} />,
-    background: 'rgba(138, 173, 138, 0.12)',
-    border: '1px solid rgba(138, 173, 138, 0.35)',
-  },
-  badge: {
-    icon: <EmojiEventsIcon sx={{ color: '#C9A227' }} />,
-    background: 'rgba(201, 162, 39, 0.10)',
-    border: '1px solid rgba(201, 162, 39, 0.30)',
-  },
+// Messages arrive as "🏅 Maisie earned the Bookworm badge!" for the header
+// ticker. Here the rosette is the icon, so the leading emoji is dropped and
+// the badge name is looked up to pick the artwork.
+const stripLeadingEmoji = (s) => (s || '').replace(/^[^\p{L}\p{N}]+/u, '');
+
+const familyForMessage = (message) => {
+  const m = /earned the (.+?) badge/i.exec(message || '');
+  if (!m) return null;
+  const def = BADGE_DEFINITIONS.find((d) => d.name === m[1]);
+  return def ? def.icon : null;
 };
 
 export default function TodaysAchievements({ fetchWithAuth, globalClassFilter }) {
@@ -102,49 +102,59 @@ export default function TodaysAchievements({ fetchWithAuth, globalClassFilter })
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
-        <Chip
-          icon={<TrendingUpIcon />}
-          label={`${bandCount} band ${bandCount === 1 ? 'move' : 'moves'}`}
-          sx={{ fontWeight: 700, backgroundColor: 'rgba(138, 173, 138, 0.18)' }}
-        />
-        <Chip
-          icon={<EmojiEventsIcon />}
-          label={`${badgeCount} ${badgeCount === 1 ? 'badge' : 'badges'} earned`}
-          sx={{ fontWeight: 700, backgroundColor: 'rgba(201, 162, 39, 0.15)' }}
-        />
-      </Box>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+        {bandCount} band {bandCount === 1 ? 'move' : 'moves'} and {badgeCount}{' '}
+        {badgeCount === 1 ? 'badge' : 'badges'} in the last day
+      </Typography>
 
-      {visibleEvents.map((event) => {
-        const style = TYPE_STYLES[event.type] || TYPE_STYLES.badge;
-        return (
-          <Paper
-            key={event.id}
-            elevation={0}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              p: 2,
-              mb: 1.5,
-              borderRadius: 3,
-              background: style.background,
-              border: style.border,
-            }}
-          >
-            {style.icon}
-            <Typography
-              variant="body1"
-              sx={{ flex: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 600 }}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {visibleEvents.map((event) => {
+          const family = event.type === 'badge' ? familyForMessage(event.message) : null;
+          return (
+            <Box
+              key={event.id}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 1.5,
+                py: 1,
+                borderRadius: 3,
+                backgroundColor: 'background.paper',
+                border: '1px solid #F0E4CC',
+              }}
             >
-              {event.message}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-              {formatWhen(event.createdAt)}
-            </Typography>
-          </Paper>
-        );
-      })}
+              {event.type === 'band' ? (
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(138, 173, 138, 0.18)',
+                    flex: '0 0 auto',
+                  }}
+                >
+                  <TrendingUpIcon sx={{ color: 'primary.dark' }} />
+                </Box>
+              ) : (
+                <BadgeArt icon={family || 'hidden'} size={44} />
+              )}
+              <Typography
+                variant="body1"
+                sx={{ flex: 1, fontFamily: '"Nunito", sans-serif', fontWeight: 600 }}
+              >
+                {stripLeadingEmoji(event.message)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                {formatWhen(event.createdAt)}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 }

@@ -1,20 +1,20 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
+// One painted scene per stage. The scene carries the ground, sky, beds,
+// fence and path; only the growing plant and the signpost are layered on top.
+// Before v3.131.0 the header was a CSS gradient with a dozen cut-out sprites
+// floated at hand-typed percentages, which is why it read as clip-art.
+import sceneSeedling from '../../assets/garden-scene-seedling.webp';
+import sceneSprout from '../../assets/garden-scene-sprout.webp';
+import sceneBloom from '../../assets/garden-scene-bloom.webp';
+import sceneFullGarden from '../../assets/garden-scene-full-garden.webp';
+
 // Growth stages for the central plant (swapped as badges accumulate)
 import gardenGrow1 from '../../assets/garden-seedling.webp';
 import gardenGrow2 from '../../assets/garden-grow-2.webp';
 import gardenGrow3 from '../../assets/garden-grow-3.webp';
 import gardenGrow4 from '../../assets/garden-grow-4.webp';
-
-// Static garden elements
-import gardenFlower from '../../assets/garden-flower.webp';
-import gardenBush from '../../assets/garden-bush.webp';
-import gardenFlowers from '../../assets/garden-flowers.webp';
-import gardenSmallTree from '../../assets/garden-small-tree.webp';
-import gardenButterfly from '../../assets/garden-butterfly.webp';
-import gardenLargeTree from '../../assets/garden-large-tree.webp';
-import gardenBird from '../../assets/garden-bird.webp';
 import gardenSignpost from '../../assets/garden-signpost-04.webp';
 import {
   STAGES,
@@ -26,12 +26,15 @@ import {
 // Re-exported for existing importers; the canonical tables live in utils/gardenStages
 export { STAGES, getStage };
 
+// Scene per STAGES index (Seedling, Sprout, Bloom, Full Garden)
+const SCENES = [sceneSeedling, sceneSprout, sceneBloom, sceneFullGarden];
+
 // Growth stages: the central plant evolves through 4 images
 export const GROWTH_STAGES = [
-  { src: gardenGrow1, minBadges: 1, height: '40%' },
-  { src: gardenGrow2, minBadges: 5, height: '50%' },
-  { src: gardenGrow3, minBadges: 9, height: '58%' },
-  { src: gardenGrow4, minBadges: 13, height: '65%' },
+  { src: gardenGrow1, minBadges: 1, height: '34%' },
+  { src: gardenGrow2, minBadges: 5, height: '44%' },
+  { src: gardenGrow3, minBadges: 9, height: '52%' },
+  { src: gardenGrow4, minBadges: 13, height: '58%' },
 ];
 
 export function getCurrentGrowth(badgeCount) {
@@ -40,131 +43,6 @@ export function getCurrentGrowth(badgeCount) {
     if (badgeCount >= stage.minBadges) current = stage;
   }
   return current;
-}
-
-// Static elements that appear progressively as badges are earned
-const GARDEN_ELEMENTS = [
-  // First wildflowers (badges 2–3)
-  { src: gardenFlower, alt: 'Wildflower', minBadges: 2, left: '18%', bottom: '8%', height: '35%' },
-  { src: gardenFlower, alt: 'Wildflower', minBadges: 2, left: '62%', bottom: '10%', height: '30%' },
-  {
-    src: gardenFlowers,
-    alt: 'Flower patch',
-    minBadges: 3,
-    left: '28%',
-    bottom: '6%',
-    height: '42%',
-  },
-  { src: gardenFlower, alt: 'Wildflower', minBadges: 4, left: '8%', bottom: '10%', height: '28%' },
-
-  // Garden filling in (badges 5–7)
-  { src: gardenBush, alt: 'Bush', minBadges: 5, left: '70%', bottom: '12%', height: '35%' },
-  {
-    src: gardenFlowers,
-    alt: 'Flower patch',
-    minBadges: 5,
-    left: '52%',
-    bottom: '8%',
-    height: '38%',
-  },
-  { src: gardenFlower, alt: 'Wildflower', minBadges: 6, left: '38%', bottom: '12%', height: '26%' },
-  {
-    src: gardenFlowers,
-    alt: 'Flower patch',
-    minBadges: 7,
-    left: '5%',
-    bottom: '6%',
-    height: '40%',
-  },
-  { src: gardenBush, alt: 'Bush', minBadges: 7, left: '22%', bottom: '12%', height: '30%' },
-
-  // Trees and more life (badges 9–12)
-  {
-    src: gardenSmallTree,
-    alt: 'Apple tree',
-    minBadges: 9,
-    left: '75%',
-    bottom: '8%',
-    height: '55%',
-  },
-  { src: gardenFlower, alt: 'Wildflower', minBadges: 9, left: '48%', bottom: '6%', height: '28%' },
-  {
-    src: gardenFlowers,
-    alt: 'Flower patch',
-    minBadges: 10,
-    left: '60%',
-    bottom: '5%',
-    height: '34%',
-  },
-  {
-    src: gardenButterfly,
-    alt: 'Butterfly',
-    minBadges: 11,
-    left: '55%',
-    bottom: '55%',
-    height: '28%',
-  },
-  { src: gardenBush, alt: 'Bush', minBadges: 11, left: '42%', bottom: '10%', height: '32%' },
-  {
-    src: gardenFlower,
-    alt: 'Wildflower',
-    minBadges: 12,
-    left: '15%',
-    bottom: '14%',
-    height: '24%',
-  },
-
-  // Full garden (badges 13+)
-  { src: gardenLargeTree, alt: 'Oak tree', minBadges: 13, left: '2%', bottom: '8%', height: '75%' },
-  {
-    src: gardenFlowers,
-    alt: 'Flower patch',
-    minBadges: 13,
-    left: '35%',
-    bottom: '5%',
-    height: '36%',
-  },
-  {
-    src: gardenSmallTree,
-    alt: 'Small tree',
-    minBadges: 14,
-    left: '32%',
-    bottom: '10%',
-    height: '45%',
-  },
-  { src: gardenFlower, alt: 'Wildflower', minBadges: 15, left: '82%', bottom: '8%', height: '26%' },
-  { src: gardenBird, alt: 'Robin', minBadges: 16, left: '18%', bottom: '52%', height: '25%' },
-  {
-    src: gardenFlowers,
-    alt: 'Flower patch',
-    minBadges: 16,
-    left: '68%',
-    bottom: '6%',
-    height: '32%',
-  },
-];
-
-export function getGroundGradient(badgeCount) {
-  if (badgeCount < 3) {
-    return 'linear-gradient(180deg, transparent 70%, #D4A574 85%, #C49A6C 100%)';
-  }
-  if (badgeCount < 7) {
-    return 'linear-gradient(180deg, transparent 70%, #B8C49A 82%, #C49A6C 100%)';
-  }
-  if (badgeCount < 13) {
-    return 'linear-gradient(180deg, transparent 70%, #A8D48C 82%, #B8C49A 94%, #C49A6C 100%)';
-  }
-  return 'linear-gradient(180deg, transparent 65%, #A8D48C 78%, #8FBF6F 90%, #B8C49A 100%)';
-}
-
-export function getSkyGradient(badgeCount) {
-  if (badgeCount < 1) {
-    return 'linear-gradient(180deg, #F5EFD6 0%, #FFF8EE 100%)';
-  }
-  if (badgeCount < 7) {
-    return 'linear-gradient(180deg, #EDF5E4 0%, #F5EFD6 60%, #FFF8EE 100%)';
-  }
-  return 'linear-gradient(180deg, #E8F5E2 0%, #EDF5E4 40%, #F5EFD6 80%, #FFF8EE 100%)';
 }
 
 export default function GardenHeader({
@@ -177,6 +55,7 @@ export default function GardenHeader({
   hideLabel = false,
 }) {
   const stage = stageProp ? stageFromApiName(stageProp) || STAGES[0] : getStage(badgeCount);
+  const sceneIndex = Math.max(0, STAGES.indexOf(stage));
 
   // When goalsCompleted is provided (class goals), map it to an effective badge count
   const effectiveBadgeCount =
@@ -184,28 +63,43 @@ export default function GardenHeader({
 
   const subtitle = label || (studentName ? `${studentName}'s Reading Garden` : 'Reading Garden');
   const growth = getCurrentGrowth(effectiveBadgeCount);
+  const badgeLine = `${badgeCount} badge${badgeCount !== 1 ? 's' : ''} earned`;
 
   return (
     <Box
+      role="img"
+      aria-label={`${subtitle}, ${stage.name} stage`}
       sx={{
         position: 'relative',
         overflow: 'hidden',
         borderRadius: '12px 12px 0 0',
         height,
-        background: getSkyGradient(effectiveBadgeCount),
+        background: '#F7F1DF',
       }}
     >
-      {/* Ground layer */}
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background: getGroundGradient(effectiveBadgeCount),
-          transition: 'background 0.8s ease',
-        }}
-      />
+      {/* Painted scene, cross-faded when the stage changes */}
+      {SCENES.map((src, i) => (
+        <Box
+          key={src}
+          component="img"
+          src={src}
+          alt=""
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center 72%',
+            opacity: i === sceneIndex ? 1 : 0,
+            transition: 'opacity 0.9s ease',
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
 
-      {/* Growing central plant — swaps through 4 growth stages */}
+      {/* Growing central plant, swaps through 4 growth stages */}
       {GROWTH_STAGES.map((gs) => {
         const isActive = growth && growth.src === gs.src;
         return (
@@ -213,83 +107,61 @@ export default function GardenHeader({
             key={gs.minBadges}
             component="img"
             src={gs.src}
-            alt={`Plant growth stage ${gs.minBadges}`}
+            alt=""
+            aria-hidden="true"
             sx={{
               position: 'absolute',
-              left: '43%',
-              bottom: '10%',
+              left: '47%',
+              bottom: '9%',
               height: gs.height,
               width: 'auto',
               objectFit: 'contain',
               transformOrigin: 'bottom center',
               opacity: isActive ? 1 : 0,
-              transform: isActive ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(5px)',
+              transform: isActive
+                ? 'translateX(-50%) scale(1)'
+                : 'translateX(-50%) scale(0.8) translateY(6px)',
               transition: 'opacity 0.8s ease, transform 0.8s ease',
               pointerEvents: 'none',
-              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
+              filter: 'drop-shadow(0 2px 3px rgba(60,40,20,0.18))',
             }}
           />
         );
       })}
 
-      {/* Static garden elements */}
-      {GARDEN_ELEMENTS.map((el, i) => (
-        <Box
-          key={i}
-          component="img"
-          src={el.src}
-          alt={el.alt}
-          sx={{
-            position: 'absolute',
-            left: el.left,
-            bottom: el.bottom,
-            height: el.height,
-            width: 'auto',
-            objectFit: 'contain',
-            opacity: effectiveBadgeCount >= el.minBadges ? 1 : 0,
-            transform:
-              effectiveBadgeCount >= el.minBadges
-                ? 'scale(1) translateY(0)'
-                : 'scale(0.6) translateY(10px)',
-            transition: 'opacity 0.6s ease, transform 0.6s ease',
-            pointerEvents: 'none',
-            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))',
-          }}
-        />
-      ))}
-
       {/* Signpost with stage label */}
       <Box
         sx={{
           position: 'absolute',
-          right: '6%',
+          right: '4%',
           bottom: '6%',
-          height: '55%',
+          height: '52%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           pointerEvents: 'none',
-          zIndex: 2,
         }}
       >
         <Box
           component="img"
           src={gardenSignpost}
-          alt="Garden signpost"
+          alt=""
+          aria-hidden="true"
           sx={{
             height: '100%',
             width: 'auto',
             objectFit: 'contain',
-            filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.12))',
+            filter: 'drop-shadow(0 2px 3px rgba(60,40,20,0.18))',
           }}
         />
         <Typography
+          aria-hidden="true"
           sx={{
             position: 'absolute',
             color: '#5D4E37',
             fontFamily: '"Nunito", "DM Sans", sans-serif',
             fontWeight: 800,
-            fontSize: 'clamp(0.65rem, 1.8vw, 0.85rem)',
+            fontSize: 'clamp(0.65rem, 1.8vw, 0.9rem)',
             textAlign: 'center',
             letterSpacing: '0.02em',
             textShadow: '0 1px 0 rgba(255,255,255,0.3)',
@@ -312,21 +184,21 @@ export default function GardenHeader({
             right: 0,
             textAlign: 'center',
             pb: 0.5,
-            background: 'linear-gradient(transparent, rgba(255,254,249,0.7))',
-            pt: 2,
+            background: 'linear-gradient(transparent, rgba(255,254,249,0.82))',
+            pt: 2.5,
           }}
         >
           <Typography
             variant="subtitle2"
-            sx={{ color: '#5D6B4A', fontWeight: 700, fontSize: '0.85rem' }}
+            sx={{ color: '#4A5A3A', fontWeight: 700, fontSize: '0.85rem' }}
           >
             {subtitle}
           </Typography>
-          <Typography variant="caption" sx={{ color: '#5D6B4A', fontSize: '0.75rem' }}>
-            {stageProp
-              ? stage.name + ' stage'
-              : `${badgeCount} badge${badgeCount !== 1 ? 's' : ''} earned · ${stage.name} stage`}
-          </Typography>
+          {!stageProp && (
+            <Typography variant="caption" sx={{ color: '#4A5A3A', fontSize: '0.75rem' }}>
+              {badgeLine}
+            </Typography>
+          )}
         </Box>
       )}
     </Box>

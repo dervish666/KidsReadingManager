@@ -1,5 +1,6 @@
 import React from 'react';
 import { Chip, Tooltip } from '@mui/material';
+import { BadgeArt } from './BadgeIcon';
 
 export default function BadgeIndicators({ count = 0, badges }) {
   const total = count || (badges ? badges.length : 0);
@@ -8,15 +9,16 @@ export default function BadgeIndicators({ count = 0, badges }) {
   return (
     <Tooltip title={`${total} badge${total !== 1 ? 's' : ''} earned`}>
       <Chip
-        label={`🌿 ${total}`}
+        icon={<BadgeArt icon="hidden" size={16} sx={{ ml: 0.5 }} />}
+        label={total}
         size="small"
         sx={{
           height: 22,
           fontSize: 11,
-          fontWeight: 600,
-          background: 'linear-gradient(135deg, #86A86B, #6B8F50)',
-          color: 'white',
-          '& .MuiChip-label': { px: 1 },
+          fontWeight: 700,
+          backgroundColor: 'rgba(138, 173, 138, 0.18)',
+          color: 'primary.dark',
+          '& .MuiChip-label': { pl: 0.5, pr: 1 },
         }}
       />
     </Tooltip>

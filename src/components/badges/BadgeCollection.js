@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, LinearProgress, Typography } from '@mui/material';
-import BadgeIcon from './BadgeIcon';
+import BadgeIcon, { BadgeArt } from './BadgeIcon';
 import GardenHeader from './GardenHeader';
 
 export default function BadgeCollection({ studentName, badges = [], nearMisses = [], _stats }) {
@@ -18,7 +18,7 @@ export default function BadgeCollection({ studentName, badges = [], nearMisses =
             <Typography variant="subtitle2" sx={{ mb: 1, color: '#3D3427' }}>
               Earned
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5, mb: 2 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 2 }}>
               {earned.map((b) => (
                 <BadgeIcon
                   key={b.badgeId}
@@ -56,7 +56,7 @@ export default function BadgeCollection({ studentName, badges = [], nearMisses =
                   sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography sx={{ fontSize: 18, opacity: 0.5 }}>{nm.icon || '🏆'}</Typography>
+                    <BadgeArt icon={nm.icon} tier={nm.tier} size={36} earned={false} />
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 500, color: '#3D3427' }}>
                         {nm.name} {nm.tier !== 'single' ? `(${nm.tier})` : ''}
@@ -79,7 +79,7 @@ export default function BadgeCollection({ studentName, badges = [], nearMisses =
                     borderRadius: 1,
                     backgroundColor: '#E8DFD0',
                     '& .MuiLinearProgress-bar': {
-                      background: 'linear-gradient(90deg, #8AAD8A, #6B8E6B)',
+                      backgroundColor: 'primary.main',
                       borderRadius: 1,
                     },
                   }}

@@ -7,14 +7,15 @@ import {
   Chip,
   Divider,
   LinearProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Skeleton,
   Button,
+  ButtonBase,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import BadgeIcon from '../badges/BadgeIcon';
+import { BadgeArt, TIER_COLORS, tierLabelFor } from '../badges/BadgeIcon';
 import GardenHeader from '../badges/GardenHeader';
 import { BADGE_DEFINITIONS } from '../../utils/badgeDefinitions';
 import { stageFromApiName, getAggregateGarden } from '../../utils/gardenStages';
@@ -33,7 +34,32 @@ const CATEGORY_GROUPS = [
   { label: 'Secret', categories: ['secret'] },
 ];
 
-const PROGRESS_GRADIENT = 'linear-gradient(90deg, #8AAD8A, #6B8E6B)';
+// One accent for progress (sage) and one for "done" (gold). The goals used to
+// carry a gradient per metric ending in a brown chip, and the badge rows a
+// gradient bar each, so the page changed colour every hundred pixels.
+const GOLD_DARK = '#8F6B00';
+const TILE_BORDER = '1px solid #F0E4CC';
+
+/**
+ * Badge families: definitions grouped by display name, tiers in catalogue
+ * order. Bookworm has four tiers; First Finish has one.
+ */
+export const BADGE_FAMILIES = (() => {
+  const byName = new Map();
+  for (const def of BADGE_DEFINITIONS) {
+    if (!byName.has(def.name)) {
+      byName.set(def.name, {
+        name: def.name,
+        icon: def.icon,
+        category: def.category,
+        isSecret: Boolean(def.isSecret),
+        tiers: [],
+      });
+    }
+    byName.get(def.name).tiers.push(def);
+  }
+  return [...byName.values()];
+})();
 
 export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
   const { classes } = useData();
@@ -45,6 +71,7 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
   const [goalsError, setGoalsError] = useState(false);
   const [showGoalEditor, setShowGoalEditor] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
+  const [openBadge, setOpenBadge] = useState(null);
 
   const loadData = () => {
     setLoading(true);
@@ -82,22 +109,12 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
       });
   }, [globalClassFilter, fetchWithAuth]);
 
-  // Merge API response with client-side badge definitions
-  const enrichedBadges = useMemo(() => {
-    if (!data?.badges) return [];
-    return data.badges.map((b) => {
-      const def = BADGE_DEFINITIONS.find((d) => d.id === b.badgeId);
-      return {
-        ...b,
-        def: def || {
-          name: b.badgeId,
-          tier: 'single',
-          icon: 'bookworm',
-          category: 'milestone',
-          description: '',
-        },
-      };
-    });
+  // API summary rows keyed by badge id; a badge the API did not mention
+  // (secret badges nobody has earned) reads as zero.
+  const summaryById = useMemo(() => {
+    const map = new Map();
+    for (const b of data?.badges || []) map.set(b.badgeId, b);
+    return map;
   }, [data]);
 
   if (loading) {
@@ -105,16 +122,18 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
       <Box>
         <Skeleton
           variant="rectangular"
-          sx={{ height: { xs: 240, md: 300 }, borderRadius: 3, mb: 2 }}
+          sx={{ height: { xs: 200, md: 300 }, borderRadius: 3, mb: 2 }}
         />
         <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} variant="rounded" width={110} height={40} sx={{ borderRadius: 5 }} />
           ))}
         </Box>
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Skeleton key={i} variant="rectangular" height={56} sx={{ mb: 1, borderRadius: 3 }} />
-        ))}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} variant="rectangular" height={132} sx={{ borderRadius: 3 }} />
+          ))}
+        </Box>
       </Box>
     );
   }
@@ -134,6 +153,8 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
 
   if (!data) return null;
 
+  const totalStudents = data.totalStudents || 0;
+
   return (
     <Box>
       <GardenHeroCard
@@ -147,49 +168,61 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
         onShowDisplay={() => setShowDisplay(true)}
       />
 
-      {data.totalBadgesEarned === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="body1" color="text.secondary">
-            No badges earned yet. As students read and log sessions, the garden will grow.
-          </Typography>
-        </Box>
-      ) : (
-        CATEGORY_GROUPS.map((group) => {
-          const groupBadges = enrichedBadges.filter((b) =>
-            group.categories.includes(b.def.category)
-          );
-          if (groupBadges.length === 0) return null;
+      {data.totalBadgesEarned === 0 && (
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+          No badges earned yet. These are the ones waiting to be won, and every logged session
+          counts towards them.
+        </Typography>
+      )}
 
-          // Hide secret group label if no earned secrets
-          if (group.label === 'Secret' && groupBadges.every((b) => b.earnedCount === 0)) {
-            return null;
-          }
+      {CATEGORY_GROUPS.map((group) => {
+        const families = BADGE_FAMILIES.filter((f) => group.categories.includes(f.category));
+        // Secret badges stay hidden until somebody has one
+        const visible = families.filter(
+          (f) => !f.isSecret || f.tiers.some((t) => (summaryById.get(t.id)?.earnedCount || 0) > 0)
+        );
+        if (visible.length === 0) return null;
 
-          return (
-            <Box key={group.label} sx={{ mb: 3 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontFamily: '"Nunito", sans-serif',
-                  fontWeight: 700,
-                  color: 'text.primary',
-                  mb: 1.5,
-                }}
-              >
-                {group.label}
-              </Typography>
-
-              {groupBadges.map((badge) => (
-                <BadgeAccordion
-                  key={badge.badgeId}
-                  badge={badge}
-                  totalStudents={data.totalStudents}
+        return (
+          <Box key={group.label} sx={{ mb: 3 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontFamily: '"Nunito", sans-serif',
+                fontWeight: 700,
+                color: 'text.primary',
+                mb: 1.5,
+              }}
+            >
+              {group.label}
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+                gap: 2,
+              }}
+            >
+              {visible.map((family) => (
+                <BadgeFamilyTile
+                  key={family.name}
+                  family={family}
+                  summaryById={summaryById}
+                  totalStudents={totalStudents}
+                  onOpen={(def) => setOpenBadge(def)}
                 />
               ))}
             </Box>
-          );
-        })
-      )}
+          </Box>
+        );
+      })}
+
+      <BadgeStudentsDialog
+        def={openBadge}
+        summary={openBadge ? summaryById.get(openBadge.id) : null}
+        totalStudents={totalStudents}
+        onClose={() => setOpenBadge(null)}
+      />
 
       <Suspense fallback={null}>
         {showGoalEditor && (
@@ -218,8 +251,8 @@ export default function AchievementsTab({ fetchWithAuth, globalClassFilter }) {
   );
 }
 
-// The hero: the garden itself, always rendered — goals-driven when a class
-// with goals is selected, scaled per student for whole-school/aggregate views.
+// The hero: the garden itself, always rendered. Goals-driven when a class
+// with goals is selected, scaled per student for whole-school views.
 function GardenHeroCard({
   data,
   classes,
@@ -244,7 +277,11 @@ function GardenHeroCard({
       ? 'Reading Garden'
       : 'Whole School Reading Garden';
 
-  const summary = `${data.totalBadgesEarned} badge${data.totalBadgesEarned !== 1 ? 's' : ''} earned · ${data.studentsWithBadges} of ${data.totalStudents} readers · ${stage.name} stage`;
+  const badgeWord = data.totalBadgesEarned === 1 ? 'badge' : 'badges';
+  const summary =
+    data.totalBadgesEarned === 0
+      ? `${data.totalStudents} readers, nothing earned yet`
+      : `${data.totalBadgesEarned} ${badgeWord} earned by ${data.studentsWithBadges} of ${data.totalStudents} readers`;
 
   const classChips = useMemo(
     () => classes.filter((c) => !c.disabled).sort((a, b) => a.name.localeCompare(b.name)),
@@ -263,13 +300,15 @@ function GardenHeroCard({
         <GardenHeader
           stage={classGoals.gardenStage}
           goalsCompleted={classGoals.goalsCompleted}
-          height={{ xs: 160, md: 220 }}
+          height={{ xs: 200, md: 300 }}
+          label={title}
           hideLabel
         />
       ) : (
         <GardenHeader
           badgeCount={aggregate.effectiveBadgeCount}
-          height={{ xs: 160, md: 220 }}
+          height={{ xs: 200, md: 300 }}
+          label={title}
           hideLabel
         />
       )}
@@ -282,10 +321,10 @@ function GardenHeroCard({
           {title}
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-          {summary}
+          {summary}. {stage.name} stage.
         </Typography>
 
-        {/* Class picker — writes the same global filter the header select uses */}
+        {/* Class picker, writes the same global filter the header select uses */}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           <ClassChip
             label="Whole school"
@@ -311,7 +350,20 @@ function GardenHeroCard({
         {classGoals && (
           <>
             <Divider sx={{ my: 2 }} />
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 700, mb: 1.5 }}
+            >
+              Class goals this year
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+                columnGap: 3,
+                rowGap: 2,
+              }}
+            >
               {sortedGoals.map((goal) => {
                 const config = METRIC_CONFIG[goal.metric];
                 if (!config) return null;
@@ -322,12 +374,13 @@ function GardenHeroCard({
                     <Box
                       sx={{
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'baseline',
                         justifyContent: 'space-between',
+                        gap: 1,
                         mb: 0.5,
                       }}
                     >
-                      <Box>
+                      <Box sx={{ minWidth: 0 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                           {config.label}
                         </Typography>
@@ -337,19 +390,22 @@ function GardenHeroCard({
                       </Box>
                       {completed ? (
                         <Chip
-                          label="Goal reached!"
+                          label="Reached"
                           size="small"
                           sx={{
                             height: 24,
                             fontSize: 12,
-                            fontWeight: 600,
-                            backgroundColor: config.colorEnd,
-                            color: 'white',
+                            fontWeight: 700,
+                            backgroundColor: GOLD_DARK,
+                            color: '#fff',
                           }}
                         />
                       ) : (
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {goal.current} / {goal.target}
+                        <Typography
+                          variant="body2"
+                          sx={{ color: 'text.primary', fontWeight: 600, whiteSpace: 'nowrap' }}
+                        >
+                          {goal.current} of {goal.target}
                         </Typography>
                       )}
                     </Box>
@@ -360,9 +416,9 @@ function GardenHeroCard({
                       sx={{
                         height: 8,
                         borderRadius: 1,
-                        backgroundColor: '#E8DFD0',
+                        backgroundColor: '#EDE6D6',
                         '& .MuiLinearProgress-bar': {
-                          background: `linear-gradient(90deg, ${config.color}, ${config.colorEnd})`,
+                          backgroundColor: completed ? GOLD_DARK : 'primary.main',
                           borderRadius: 1,
                         },
                       }}
@@ -371,7 +427,7 @@ function GardenHeroCard({
                 );
               })}
             </Box>
-            <Box sx={{ display: 'flex', gap: 1.5, mt: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5, flexWrap: 'wrap' }}>
               <Button variant="contained" onClick={onShowDisplay} sx={{ minHeight: 44 }}>
                 Show on whiteboard
               </Button>
@@ -390,7 +446,7 @@ function GardenHeroCard({
   );
 }
 
-// Selected state uses primary.dark, not main — white chip text needs the
+// Selected state uses primary.dark, not main: white chip text needs the
 // darker sage to clear 4.5:1 on the filled background
 function ClassChip({ label, selected, onClick }) {
   return (
@@ -412,155 +468,280 @@ function ClassChip({ label, selected, onClick }) {
   );
 }
 
-function BadgeAccordion({ badge, totalStudents }) {
-  const { def, earnedCount, students: badgeStudents = [] } = badge;
-  const fraction = totalStudents > 0 ? (earnedCount / totalStudents) * 100 : 0;
-  const tierLabel =
-    def.tier === 'single' ? '' : def.tier.charAt(0).toUpperCase() + def.tier.slice(1);
-
-  // Sort: earned first (by date), then unearned by progress descending
-  const sortedStudents = useMemo(() => {
-    const earned = badgeStudents
-      .filter((s) => s.earned)
-      .sort((a, b) => a.name.localeCompare(b.name));
-    const unearned = badgeStudents
-      .filter((s) => !s.earned)
-      .sort((a, b) => {
-        const progA = a.target > 0 ? a.current / a.target : 0;
-        const progB = b.target > 0 ? b.current / b.target : 0;
-        return progB - progA;
-      });
-    return [...earned, ...unearned];
-  }, [badgeStudents]);
+/**
+ * One tile per badge family. The rosette is lit once anyone has the lowest
+ * tier; each tier underneath shows how many readers hold it and opens the
+ * per-student list. Counts are numbers, not bars: "0 of 24" as an empty
+ * grey track was the single most repeated element on the old page.
+ */
+function BadgeFamilyTile({ family, summaryById, totalStudents, onOpen }) {
+  const counts = family.tiers.map((t) => summaryById.get(t.id)?.earnedCount || 0);
+  const anyEarned = counts.some((c) => c > 0);
+  // Highest tier anyone holds decides the pip on the big rosette
+  let topTier = family.tiers[0].tier;
+  family.tiers.forEach((t, i) => {
+    if (counts[i] > 0) topTier = t.tier;
+  });
+  const single = family.tiers.length === 1;
+  const lead = family.tiers[0];
 
   return (
-    <Accordion
-      disableGutters
-      elevation={0}
+    <Box
       sx={{
-        border: '1px solid #F0E4CC',
-        borderRadius: '12px !important',
-        mb: 1,
-        '&:before': { display: 'none' },
-        overflow: 'hidden',
+        border: TILE_BORDER,
+        borderRadius: 3,
+        backgroundColor: 'background.paper',
+        p: 2,
+        display: 'flex',
+        gap: 2,
+        alignItems: 'flex-start',
+        minWidth: 0,
       }}
     >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon />}
-        sx={{ px: 2, '& .MuiAccordionSummary-content': { alignItems: 'center', gap: 1.5 } }}
-      >
-        <BadgeIcon
-          badge={{ name: def.name, tier: def.tier, icon: def.icon, description: def.description }}
-          size="small"
-          showLabel={false}
-        />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-              {def.name}
-            </Typography>
-            {tierLabel && <Chip label={tierLabel} size="small" sx={{ height: 22, fontSize: 12 }} />}
-          </Box>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {def.description} · {earnedCount} of {totalStudents} students
-          </Typography>
-        </Box>
-        <Box sx={{ width: 100, mr: 1 }}>
-          <LinearProgress
-            variant="determinate"
-            value={Math.min(100, fraction)}
-            aria-label={`${def.name}: earned by ${earnedCount} of ${totalStudents} students`}
-            sx={{
-              height: 6,
-              borderRadius: 1,
-              backgroundColor: '#E8DFD0',
-              '& .MuiLinearProgress-bar': {
-                background: PROGRESS_GRADIENT,
-                borderRadius: 1,
-              },
-            }}
-          />
-        </Box>
-      </AccordionSummary>
+      <BadgeArt
+        icon={family.icon}
+        tier={single ? lead.tier : topTier}
+        size={72}
+        earned={anyEarned}
+        sx={{ mt: 0.25 }}
+      />
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          sx={{
+            fontFamily: '"Nunito", sans-serif',
+            fontWeight: 800,
+            fontSize: '1.05rem',
+            color: 'text.primary',
+            lineHeight: 1.2,
+          }}
+        >
+          {family.name}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.25 }}>
+          {lead.description}
+        </Typography>
 
-      <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          {sortedStudents.map((s) => (
-            <StudentBadgeRow key={s.id} student={s} badgeName={def.name} />
-          ))}
-        </Box>
-      </AccordionDetails>
-    </Accordion>
+        {single ? (
+          <TierButton
+            def={lead}
+            count={counts[0]}
+            totalStudents={totalStudents}
+            onClick={() => onOpen(lead)}
+            wide
+          />
+        ) : (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {family.tiers.map((def, i) => (
+              <TierButton
+                key={def.id}
+                def={def}
+                count={counts[i]}
+                totalStudents={totalStudents}
+                onClick={() => onOpen(def)}
+              />
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Box>
   );
 }
 
-function StudentBadgeRow({ student, badgeName }) {
-  if (student.earned) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}>
-        <Typography
-          variant="body2"
-          sx={{ color: 'text.primary', minWidth: 0, maxWidth: '60%' }}
-          noWrap
-        >
-          {student.name}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Chip
-            label="Earned"
-            size="small"
-            sx={{
-              height: 22,
-              fontSize: 12,
-              fontWeight: 600,
-              backgroundColor: '#6B8E6B',
-              color: 'white',
-            }}
-          />
-          <Typography
-            variant="caption"
-            sx={{ color: 'text.secondary', minWidth: 65, textAlign: 'right' }}
-          >
-            {new Date(student.earnedAt).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-            })}
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
-
-  const progress = student.target > 0 ? (student.current / student.target) * 100 : 0;
-
+function TierButton({ def, count, totalStudents, onClick, wide = false }) {
+  const earned = count > 0;
+  const tierLabel = tierLabelFor(def.tier);
+  const label = wide ? `${count} of ${totalStudents} readers` : `${count} of ${totalStudents}`;
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.5 }}>
-      <Typography
-        variant="body2"
-        sx={{ color: 'text.secondary', minWidth: 0, flex: '0 0 auto', maxWidth: '50%' }}
-        noWrap
-      >
-        {student.name}
-      </Typography>
-      <Box sx={{ flex: 1 }}>
-        <LinearProgress
-          variant="determinate"
-          value={Math.min(100, progress)}
-          aria-label={`${student.name}, ${badgeName} progress: ${student.current} of ${student.target}`}
+    <ButtonBase
+      onClick={onClick}
+      aria-label={`${def.name}${tierLabel ? ` ${tierLabel}` : ''}, earned by ${count} of ${totalStudents} readers. Show readers`}
+      sx={{
+        minHeight: 44,
+        px: 1.25,
+        py: 0.5,
+        borderRadius: 2,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1,
+        textAlign: 'left',
+        border: '1px solid',
+        borderColor: earned ? 'rgba(107, 142, 107, 0.45)' : 'rgba(139, 115, 85, 0.18)',
+        backgroundColor: earned ? 'rgba(138, 173, 138, 0.12)' : 'transparent',
+        '&:hover': { backgroundColor: 'rgba(138, 173, 138, 0.2)' },
+        '&.Mui-focusVisible': { outline: '2px solid #6B8E6B', outlineOffset: 2 },
+        '&:active': { transform: 'scale(0.98)' },
+      }}
+    >
+      {tierLabel && (
+        <Box
+          aria-hidden="true"
           sx={{
-            height: 4,
-            borderRadius: 1,
-            backgroundColor: '#E8DFD0',
-            '& .MuiLinearProgress-bar': {
-              background: PROGRESS_GRADIENT,
-              borderRadius: 1,
-            },
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            backgroundColor: earned ? TIER_COLORS[def.tier] : '#CFC6B4',
+            flex: '0 0 auto',
           }}
         />
+      )}
+      <Box sx={{ lineHeight: 1.15 }}>
+        {tierLabel && (
+          <Typography
+            component="span"
+            sx={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 700,
+              color: earned ? 'text.primary' : 'text.secondary',
+            }}
+          >
+            {tierLabel}
+          </Typography>
+        )}
+        <Typography
+          component="span"
+          sx={{
+            display: 'block',
+            fontSize: tierLabel ? 12 : 14,
+            fontWeight: tierLabel ? 500 : 600,
+            color: earned ? 'primary.dark' : 'text.secondary',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {label}
+        </Typography>
       </Box>
-      <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-        {student.current}/{student.target}
-      </Typography>
-    </Box>
+    </ButtonBase>
   );
+}
+
+/** Who has this badge, and how close everyone else is. */
+function BadgeStudentsDialog({ def, summary, totalStudents, onClose }) {
+  const open = Boolean(def);
+  const tierLabel = def ? tierLabelFor(def.tier) : '';
+
+  const { earned, unearned } = useMemo(() => {
+    const rows = summary?.students || [];
+    return {
+      earned: rows.filter((s) => s.earned).sort((a, b) => a.name.localeCompare(b.name)),
+      unearned: rows
+        .filter((s) => !s.earned)
+        .sort((a, b) => {
+          const progA = a.target > 0 ? a.current / a.target : 0;
+          const progB = b.target > 0 ? b.current / b.target : 0;
+          return progB - progA;
+        }),
+    };
+  }, [summary]);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="xs"
+      slotProps={{ paper: { sx: { borderRadius: 3 } } }}
+    >
+      {def && (
+        <>
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
+            <BadgeArt icon={def.icon} tier={def.tier} size={56} />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                component="div"
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, fontSize: '1.1rem' }}
+              >
+                {def.name}
+                {tierLabel ? ` ${tierLabel}` : ''}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {def.description}
+              </Typography>
+            </Box>
+          </DialogTitle>
+          <DialogContent dividers sx={{ px: 3 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+              Earned by {earned.length} of {totalStudents} readers
+            </Typography>
+
+            {earned.length > 0 && (
+              <Box sx={{ mb: unearned.length > 0 ? 2.5 : 0 }}>
+                {earned.map((s) => (
+                  <Box
+                    key={s.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                      py: 0.75,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ color: 'text.primary' }} noWrap>
+                      {s.name}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: GOLD_DARK, fontWeight: 700, whiteSpace: 'nowrap' }}
+                    >
+                      {formatEarned(s.earnedAt)}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+
+            {unearned.length > 0 && (
+              <>
+                <Typography
+                  variant="caption"
+                  sx={{ color: 'text.secondary', fontWeight: 700, display: 'block', mb: 0.5 }}
+                >
+                  Still working on it
+                </Typography>
+                {unearned.map((s) => (
+                  <Box
+                    key={s.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                      py: 0.75,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
+                      {s.name}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'text.secondary',
+                        whiteSpace: 'nowrap',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {s.current} of {s.target}
+                    </Typography>
+                  </Box>
+                ))}
+              </>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 1.5 }}>
+            <Button onClick={onClose} sx={{ minHeight: 44, fontWeight: 600 }}>
+              Close
+            </Button>
+          </DialogActions>
+        </>
+      )}
+    </Dialog>
+  );
+}
+
+function formatEarned(earnedAt) {
+  if (!earnedAt) return 'Earned';
+  const d = new Date(earnedAt.includes('T') ? earnedAt : `${earnedAt.replace(' ', 'T')}Z`);
+  if (Number.isNaN(d.getTime())) return 'Earned';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }

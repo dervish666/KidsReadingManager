@@ -432,15 +432,26 @@ files:
   # ---- badges/ ----
 
   badges/BadgeIcon.js:
-    description: Single badge circle with tier gradient and category emoji icon; tap/click opens an accessible popover with name, tier, description (tooltips don't fire on iPad)
+    description: Painted rosette per badge family with a coloured tier pip; tap/click opens an accessible popover with name, tier, description (tooltips don't fire on iPad)
     exports:
       - name: BadgeIcon
         kind: component
-        props: [badge, size, showLabel]
-        description: "size: 'small'|'medium'|'large'; focusable ButtonBase (div role=button) so it can sit inside accordion summaries without nested native buttons"
+        props: [badge, size, showLabel, earned]
+        description: "size: 'small'|'medium'|'large'; earned=false renders desaturated; focusable ButtonBase (div role=button) so it can sit inside other clickable rows"
+      - name: BadgeArt
+        kind: component
+        props: [icon, tier, size, earned, sx]
+        description: Artwork only (rosette + tier pip), size in px or named; used by the badge board, Today tab and BadgeIndicators
+      - name: FAMILY_ART
+        kind: constant
+        description: badge family icon key -> imported webp
+      - name: TIER_COLORS
+        kind: constant
+      - name: tierLabelFor
+        kind: function
 
   badges/GardenHeader.js:
-    description: Illustrated garden header that evolves through 4 stages based on badge count; canonical stage tables live in utils/gardenStages (re-exported here)
+    description: Painted garden scene per stage (four webp backgrounds cross-faded) with the growth plant and signpost layered on a fixed baseline; canonical stage tables live in utils/gardenStages (re-exported here)
     exports:
       - name: GardenHeader
         kind: component
@@ -456,7 +467,7 @@ files:
         description: Re-export from utils/gardenStages
 
   badges/BadgeCollection.js:
-    description: Grid of earned badges with garden header and near-miss progress bars
+    description: Grid of earned rosettes with garden header and near-miss rows (desaturated rosette + sage progress bar)
     exports:
       - name: BadgeCollection
         kind: component
@@ -486,7 +497,7 @@ files:
         description: "Dialog with from→to BandPill transition; returns null if bandUp is falsy"
 
   badges/BadgeIndicators.js:
-    description: Mini badge count chip for StudentCard showing garden emoji and total count
+    description: Mini badge count chip for StudentCard showing a 16px rosette and total count
     exports:
       - name: BadgeIndicators
         kind: component

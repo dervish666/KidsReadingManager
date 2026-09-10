@@ -1,50 +1,100 @@
 import React, { useState } from 'react';
 import { Box, ButtonBase, Chip, Popover, Typography } from '@mui/material';
 
-const TIER_GRADIENTS = {
-  bronze: 'linear-gradient(135deg, #CD7F32, #A0612A)',
-  silver: 'linear-gradient(135deg, #C0C0C0, #8A8A8A)',
-  gold: 'linear-gradient(135deg, #FFD700, #DAA520)',
-  star: 'linear-gradient(135deg, #C2700A, #9B6E3A)',
-  single: 'linear-gradient(135deg, #8AAD8A, #6B8E6B)',
+// One painted rosette per badge family. Tier is carried by a small coloured
+// pip, not by recolouring the artwork: the four Bookworm tiers share one
+// rosette, and the pip is what tells them apart at a glance.
+import rosetteBookworm from '../../assets/badge-bookworm.webp';
+import rosetteClock from '../../assets/badge-clock.webp';
+import rosetteSun from '../../assets/badge-sun.webp';
+import rosetteSeedling from '../../assets/badge-seedling.webp';
+import rosetteFlower from '../../assets/badge-flower.webp';
+import rosetteCompass from '../../assets/badge-compass.webp';
+import rosetteHidden from '../../assets/badge-hidden.webp';
+
+export const FAMILY_ART = {
+  bookworm: rosetteBookworm,
+  clock: rosetteClock,
+  sun: rosetteSun,
+  seedling: rosetteSeedling,
+  flower: rosetteFlower,
+  compass: rosetteCompass,
+  hidden: rosetteHidden,
 };
 
-const TIER_CHIP_COLORS = {
+export const TIER_COLORS = {
   bronze: '#A0612A',
   silver: '#6E6E6E',
   gold: '#A67C00',
   star: '#C2700A',
 };
 
-const CATEGORY_ICONS = {
-  bookworm: '📚',
-  clock: '⏱',
-  sun: '☀️',
-  seedling: '🌱',
-  flower: '🌸',
-  compass: '🔍',
-  hidden: '✨',
-};
+export const tierLabelFor = (tier) =>
+  !tier || tier === 'single' ? '' : tier.charAt(0).toUpperCase() + tier.slice(1);
 
-// Badge circle that opens a popover on tap/click — tooltips don't fire on
-// touch, and iPads are the primary device. Focusable, so the popover is
-// reachable by keyboard and the badge is announced to screen readers.
-export default function BadgeIcon({ badge, size = 'medium', showLabel = true }) {
+const SIZE_PX = { small: 32, medium: 64, large: 96 };
+
+/**
+ * Just the artwork: rosette plus optional tier pip. Used by BadgeIcon and by
+ * the badge board tiles, which lay out their own labels.
+ */
+export function BadgeArt({ icon, tier, size = 'medium', earned = true, sx }) {
+  const px = typeof size === 'number' ? size : SIZE_PX[size] || SIZE_PX.medium;
+  const src = FAMILY_ART[icon] || FAMILY_ART.bookworm;
+  const pipColor = TIER_COLORS[tier];
+  const pipSize = Math.max(10, Math.round(px * 0.22));
+
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        width: px,
+        height: px,
+        flex: '0 0 auto',
+        filter: earned ? 'none' : 'grayscale(1)',
+        opacity: earned ? 1 : 0.4,
+        transition: 'filter 0.3s ease, opacity 0.3s ease',
+        ...sx,
+      }}
+    >
+      <Box
+        component="img"
+        src={src}
+        alt=""
+        aria-hidden="true"
+        sx={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+      />
+      {pipColor && (
+        <Box
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+            right: Math.round(px * 0.08),
+            top: Math.round(px * 0.08),
+            width: pipSize,
+            height: pipSize,
+            borderRadius: '50%',
+            backgroundColor: pipColor,
+            border: '2px solid #FFFDF7',
+            boxShadow: '0 1px 2px rgba(60,40,20,0.25)',
+          }}
+        />
+      )}
+    </Box>
+  );
+}
+
+// Badge that opens a popover on tap/click. Tooltips don't fire on touch, and
+// iPads are the primary device. Focusable, so the popover is reachable by
+// keyboard and the badge is announced to screen readers.
+export default function BadgeIcon({ badge, size = 'medium', showLabel = true, earned = true }) {
   const [anchorEl, setAnchorEl] = useState(null);
 
-  const sizeMap = { small: 24, medium: 48, large: 64 };
-  const px = sizeMap[size] || sizeMap.medium;
-  const fontSize = size === 'small' ? 12 : size === 'large' ? 30 : 22;
-  const gradient = TIER_GRADIENTS[badge.tier] || TIER_GRADIENTS.single;
-  const icon = CATEGORY_ICONS[badge.icon] || '🏆';
-  const tierLabel =
-    badge.tier === 'single' || !badge.tier
-      ? ''
-      : badge.tier.charAt(0).toUpperCase() + badge.tier.slice(1);
+  const tierLabel = tierLabelFor(badge.tier);
   const description = badge.description || badge.unlockMessage || '';
 
   const handleOpen = (event) => {
-    // Badges sit inside accordion summaries; don't toggle the accordion too
+    // Badges sit inside other clickable rows; don't toggle the parent too
     event.stopPropagation();
     setAnchorEl(event.currentTarget);
   };
@@ -55,7 +105,7 @@ export default function BadgeIcon({ badge, size = 'medium', showLabel = true }) 
         component="div"
         role="button"
         onClick={handleOpen}
-        aria-label={`${badge.name}${tierLabel ? `, ${tierLabel} tier` : ''}. ${description}`}
+        aria-label={`${badge.name}${tierLabel ? `, ${tierLabel} tier` : ''}${earned ? '' : ', not yet earned'}. ${description}`}
         aria-haspopup="true"
         sx={{
           borderRadius: 2,
@@ -69,21 +119,7 @@ export default function BadgeIcon({ badge, size = 'medium', showLabel = true }) 
           },
         }}
       >
-        <Box
-          sx={{
-            width: px,
-            height: px,
-            borderRadius: '50%',
-            background: gradient,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-          }}
-        >
-          {icon}
-        </Box>
+        <BadgeArt icon={badge.icon} tier={badge.tier} size={size} earned={earned} />
         {showLabel && size !== 'small' && (
           <>
             <Typography
@@ -132,7 +168,7 @@ export default function BadgeIcon({ badge, size = 'medium', showLabel = true }) 
                 fontSize: 12,
                 fontWeight: 600,
                 color: '#fff',
-                backgroundColor: TIER_CHIP_COLORS[badge.tier] || '#6B8E6B',
+                backgroundColor: TIER_COLORS[badge.tier] || '#6B8E6B',
               }}
             />
           )}

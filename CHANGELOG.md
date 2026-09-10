@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.131.0] - 2026-09-10
+
+The Achievements page has been repainted. Same badges, same goals, same garden, but it now looks like the rest of the app was drawn by the same hand.
+
+### Changed
+
+- **The Reading Garden is a painted scene.** Each stage (Seedling, Sprout, Bloom, Full Garden) is a single watercolour of a school garden, with the growing plant and the signpost on top. It used to be a flat gradient with cut-out flowers scattered across it at random heights.
+- **Badges are rosettes.** Every badge family (Bookworm, Time Traveller, Sunrise Reader, Genre Explorer and the rest) has its own hand-painted rosette in the style of the app's other artwork. Tier is shown by a small coloured pip. The emoji-in-a-gradient-circle is gone from the Achievements page, student drawers, parent portal and celebration dialog.
+- **The badge list is a board.** One tile per badge family, with each tier shown as a count of readers who hold it. Tap a tier to see who has it and how close everyone else is. Before this the page was twenty near-identical rows, most of them reading "0 of 24" beside an empty grey bar.
+- **One accent colour.** Progress is sage, "reached" is gold. The goals section no longer changes colour per metric, and the goals now sit in two columns on wider screens.
+- **The Today tab** shows the badge rosette next to each award instead of a trophy icon and a medal emoji side by side.
+- **The demo school now looks like September.** Its reading sessions slide forward each reset so the newest is within the last week, which means class goals, streaks and "reading days" show real figures instead of zeros. Badge dates are spread across the last eight weeks and the Today tab shows a handful of awards over the afternoon rather than all 192 at once.
+
+### Fixed
+
+- **The demo school had two classes called Year 2.** One is now Year 1.
+
 ## [3.130.0] - 2026-09-10
 
 Staff can now change their own name and password from the app.

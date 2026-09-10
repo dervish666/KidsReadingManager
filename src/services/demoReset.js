@@ -197,6 +197,62 @@ function filterLiveRefs(table, rows, idsByTable) {
   return { rows: kept, skipped };
 }
 
+// ── Session dates ──────────────────────────────────────────────────────────
+//
+// The snapshot's reading sessions carry fixed January–April 2026 dates. Class
+// goals are keyed by academic year and streaks by "days since", so from
+// 1 August every demo class read "0 of 30 reading days" and every goal sat at
+// zero: the demo looked abandoned, not busy. Each reset now slides every
+// session forward so the most recent one lands in the last week, keeping the
+// gaps between sessions (and the weekday each falls on) exactly as exported.
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const isoDate = (d) => d.toISOString().slice(0, 10);
+
+/**
+ * Whole days to add to every snapshot session so the latest one falls within
+ * the seven days before `today`. Always a multiple of 7, so a Tuesday stays a
+ * Tuesday and the home-reading register still shows school-day patterns.
+ * Returns 0 when there is nothing to shift or the snapshot is already current.
+ */
+export function sessionDateShiftDays(rows, today = new Date()) {
+  let latest = null;
+  for (const r of rows || []) {
+    const d = r?.session_date;
+    if (typeof d === 'string' && d.length >= 10 && (!latest || d > latest)) latest = d;
+  }
+  if (!latest) return 0;
+  const latestMs = Date.parse(`${latest.slice(0, 10)}T00:00:00Z`);
+  const yesterdayMs = Date.parse(`${isoDate(today)}T00:00:00Z`) - DAY_MS;
+  if (Number.isNaN(latestMs) || yesterdayMs <= latestMs) return 0;
+  const days = Math.floor((yesterdayMs - latestMs) / DAY_MS);
+  return days - (days % 7);
+}
+
+function shiftDateString(value, days) {
+  if (typeof value !== 'string' || value.length < 10) return value;
+  const ms = Date.parse(`${value.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(ms)) return value;
+  return isoDate(new Date(ms + days * DAY_MS)) + value.slice(10);
+}
+
+/** Copy of `rows` with session_date, created_at and updated_at moved by `days`. */
+export function shiftSessionRows(rows, days) {
+  if (!days) return rows;
+  return rows.map((row) => ({
+    ...row,
+    session_date: shiftDateString(row.session_date, days),
+    created_at: shiftDateString(row.created_at, days),
+    updated_at: shiftDateString(row.updated_at, days),
+  }));
+}
+
+// How many of the reset's badge awards survive into the header ticker and the
+// Today tab. The badge pass re-awards all ~190 badges at once; a real school
+// day produces a handful.
+const TICKER_EVENTS_TO_KEEP = 14;
+
 /**
  * Build an INSERT statement for a single row.
  */
@@ -424,12 +480,18 @@ export async function resetDemoData(db, kv = null) {
   ];
   const referencedIds = await loadReferencedIds(db, referencedTables);
 
+  const shiftDays = sessionDateShiftDays(SNAPSHOT.reading_sessions);
+  if (shiftDays > 0) {
+    console.log(`[DemoReset] Sliding reading sessions forward ${shiftDays} days`);
+  }
+
   let skippedRows = 0;
   for (const table of INSERT_ORDER) {
     const snapshotRows = SNAPSHOT[table] || [];
     if (snapshotRows.length === 0) continue;
 
-    const { rows, skipped } = filterLiveRefs(table, snapshotRows, referencedIds);
+    const { rows: liveRows, skipped } = filterLiveRefs(table, snapshotRows, referencedIds);
+    const rows = table === 'reading_sessions' ? shiftSessionRows(liveRows, shiftDays) : liveRows;
     if (skipped > 0) {
       skippedRows += skipped;
       const targets = EXTERNAL_REFS[table].map((r) => r.table).join('/');
@@ -478,6 +540,40 @@ export async function resetDemoData(db, kv = null) {
     // not in SNAPSHOT, so a failure here leaves the demo with no badges at all.
     failures++;
     console.warn(`[DemoReset] Badge evaluation skipped: ${error.message}`);
+  }
+
+  // Phase 4: make the badge pass look like a school day rather than a reset.
+  // Every award above was stamped this second: the Today tab showed "192
+  // badges earned" all at 5:08 PM and every student's badge list read the same
+  // date. Keep a handful of ticker events spread over the last few hours, and
+  // spread earned_at over the last eight weeks. Cosmetic, so a failure here
+  // is logged and does not block the fingerprint.
+  try {
+    await db.batch([
+      db
+        .prepare(
+          `DELETE FROM ticker_events WHERE organization_id = ?1
+             AND id NOT IN (SELECT id FROM ticker_events WHERE organization_id = ?1
+                            ORDER BY RANDOM() LIMIT ?2)`
+        )
+        .bind(DEMO_ORG_ID, TICKER_EVENTS_TO_KEEP),
+      db
+        .prepare(
+          `UPDATE ticker_events
+             SET created_at = datetime('now', '-' || (abs(random()) % 400 + 10) || ' minutes')
+           WHERE organization_id = ?`
+        )
+        .bind(DEMO_ORG_ID),
+      db
+        .prepare(
+          `UPDATE student_badges
+             SET earned_at = datetime('now', '-' || (abs(random()) % 56 + 1) || ' days')
+           WHERE organization_id = ?`
+        )
+        .bind(DEMO_ORG_ID),
+    ]);
+  } catch (error) {
+    console.warn(`[DemoReset] Could not spread badge timestamps: ${error.message}`);
   }
 
   // Record the post-reset state so the next hour can tell "nobody touched it"

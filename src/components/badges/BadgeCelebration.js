@@ -21,7 +21,6 @@ export default function BadgeCelebration({ badges = [], onClose }) {
       }}
     >
       <DialogContent sx={{ textAlign: 'center', py: 3, px: 3 }}>
-        <Typography sx={{ fontSize: 40, mb: 1 }}>🌸</Typography>
         <Typography
           id="badge-celebration-title"
           variant="h6"
