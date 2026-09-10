@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.133.1] - 2026-09-10
+
+### Changed
+
+- **Landing page screenshots are current.** Every device mockup now shows the app as it is today, taken from the live demo, rather than a build from the spring with the old header and a version badge.
+
 ## [3.133.0] - 2026-09-10
 
 ### Added
