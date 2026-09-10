@@ -36,6 +36,7 @@ import BookAutocomplete from './BookAutocomplete';
 import StudentInfoCard from './StudentInfoCard';
 import BadgeCelebration from '../badges/BadgeCelebration';
 import BandCelebration from '../badges/BandCelebration';
+import TodaySoFar from './TodaySoFar';
 import {
   getBookDetails,
   checkAvailability,
@@ -76,6 +77,8 @@ const SessionForm = () => {
   const [isCreatingBook, setIsCreatingBook] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [bookEditAnchor, setBookEditAnchor] = useState(null);
+  // Bumped after every save so the "Today so far" list refetches
+  const [savedCount, setSavedCount] = useState(0);
   const bookEditOpen = Boolean(bookEditAnchor);
   const [notesAnchor, setNotesAnchor] = useState(null);
   const notesOpen = Boolean(notesAnchor);
@@ -377,6 +380,7 @@ const SessionForm = () => {
 
         // Remove from recents — they just read, no need to prompt again
         removeRecentlyAccessedStudent(selectedStudentId);
+        setSavedCount((n) => n + 1);
 
         // Reset form only on success
         setNotes('');
@@ -918,6 +922,14 @@ const SessionForm = () => {
           </Box>
         </form>
       </Paper>
+      <TodaySoFar
+        fetchWithAuth={fetchWithAuth}
+        classId={globalClassFilter}
+        date={date}
+        refreshKey={savedCount}
+        students={students}
+        onPickStudent={(id) => setSelectedStudentId(id)}
+      />
       {/* Student Books Read */}
       {selectedStudentId && (
         <Paper

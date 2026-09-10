@@ -362,30 +362,30 @@ function AppContent() {
         <Paper
           elevation={0}
           sx={{
-            flexGrow: 1,
+            // The sheet is as tall as its content and no taller. It used to be
+            // pinned to the viewport height, so a short page (Record Session,
+            // Recommend) sat in a card with 600px of empty cream underneath.
+            // Long pages still scroll inside the sheet: maxHeight keeps the
+            // header and bottom nav in place, and the fixed 220px/200px are
+            // header(72) + bottom nav(80) + vertical padding + safe area.
+            flexGrow: 0,
             p: { xs: 2, sm: 3 },
             borderRadius: '16px',
             overflow: 'auto',
             WebkitOverflowScrolling: 'touch',
             mb: 0,
             backgroundColor: 'background.paper',
-            // Height: viewport minus header(72px) - bottomNav(80px) - vertical padding(~48px) - safe area
-            // Use dvh with vh fallback for iOS Safari where 100vh includes address bar
-            height: 'calc(100vh - 220px)',
-            minHeight: 'calc(100vh - 220px)',
+            maxHeight: 'calc(100vh - 220px)',
             '@supports (height: 100dvh)': {
-              height: 'calc(100dvh - 220px)',
-              minHeight: 'calc(100dvh - 220px)',
+              maxHeight: 'calc(100dvh - 220px)',
             },
             border: '1px solid rgba(139, 115, 85, 0.1)',
             boxShadow: '0 8px 32px rgba(139, 115, 85, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)',
             pb: 2,
             '@media (max-width: 600px)': {
-              height: 'calc(100vh - 200px)',
-              minHeight: 'calc(100vh - 200px)',
+              maxHeight: 'calc(100vh - 200px)',
               '@supports (height: 100dvh)': {
-                height: 'calc(100dvh - 200px)',
-                minHeight: 'calc(100dvh - 200px)',
+                maxHeight: 'calc(100dvh - 200px)',
               },
               p: 2,
               borderRadius: '12px',
@@ -400,7 +400,7 @@ function AppContent() {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  height: '100%',
+                  minHeight: 240,
                 }}
               >
                 <CircularProgress sx={{ color: 'primary.main' }} />

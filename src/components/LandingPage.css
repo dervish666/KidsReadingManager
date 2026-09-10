@@ -1,6 +1,6 @@
 /* Tally Reading — landing page (product-led, premium-cozy)
    All rules are scoped under .landing-page so nothing leaks into the
-   Material-UI app shell. Fonts (DM Sans, Fraunces, Nunito) are loaded
+   Material-UI app shell. Fonts (DM Sans, Nunito) are loaded
    globally in public/index.html. */
 
 .landing-page {
@@ -62,12 +62,12 @@ html:has(.landing-page) {
 .landing-page h2,
 .landing-page h3,
 .landing-page h4 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Nunito', 'DM Sans', system-ui, sans-serif;
   color: var(--fg1);
   margin: 0;
   line-height: 1.1;
-  letter-spacing: -0.02em;
-  font-weight: 600;
+  letter-spacing: -0.025em;
+  font-weight: 800;
 }
 .landing-page p {
   margin: 0;
@@ -192,7 +192,7 @@ html:has(.landing-page) {
   display: flex;
   align-items: center;
   gap: 11px;
-  font-family: 'Fraunces', serif;
+  font-family: 'Nunito', 'DM Sans', system-ui, sans-serif;
   font-weight: 600;
   font-size: 23px;
   color: var(--fg1);
@@ -430,7 +430,7 @@ html:has(.landing-page) {
   gap: 9px;
 }
 .landing-page .metric b {
-  font-family: 'Fraunces', serif;
+  font-family: 'Nunito', 'DM Sans', system-ui, sans-serif;
   font-weight: 600;
   font-size: 30px;
   color: var(--sage-dark);
@@ -737,7 +737,7 @@ html:has(.landing-page) {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--sage-light), var(--sage));
   color: #fff;
-  font-family: 'Fraunces', serif;
+  font-family: 'Nunito', 'DM Sans', system-ui, sans-serif;
   font-weight: 600;
   font-size: 27px;
   display: flex;
@@ -805,7 +805,7 @@ html:has(.landing-page) {
   gap: 8px;
 }
 .landing-page .price .amt {
-  font-family: 'Fraunces', serif;
+  font-family: 'Nunito', 'DM Sans', system-ui, sans-serif;
   font-weight: 600;
   font-size: 52px;
   color: var(--fg1);
@@ -979,7 +979,7 @@ html:has(.landing-page) {
   padding: 10px 0;
 }
 .landing-page .cta-thanks .cta-thanks-title {
-  font-family: 'Fraunces', serif;
+  font-family: 'Nunito', 'DM Sans', system-ui, sans-serif;
   font-size: 22px;
   color: var(--sage-dark);
   margin: 8px 0 6px;

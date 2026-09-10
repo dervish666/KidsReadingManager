@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.133.0] - 2026-09-10
+
+### Added
+
+- **"Today so far" under the record form.** The school sessions already logged today for the class you are looking at, with the book and how the child read. Tap a row to select that child. A volunteer in the reading corner can now see who has been done without leaving the page.
+
+### Changed
+
+- **Pages end where their content ends.** The sheet each page sits in used to be pinned to the height of the screen, so Record Session and Recommend showed a card with a great deal of empty cream underneath. Long pages still scroll inside the sheet as before.
+- **The landing page uses the app's own typefaces.** Headings are Nunito and body is DM Sans, the same as inside Tally. The serif display face is gone, along with its font download, and the Help page follows suit.
 ## [3.132.0] - 2026-09-10
 
 A tidy-up pass across the app so every page reads the way the new Achievements page does. Nothing moved; things that said the same thing twice, or wore a colour for no reason, stopped.

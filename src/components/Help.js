@@ -1116,7 +1116,7 @@ const CategoryCard = ({ category, openArticleId, onToggleArticle, forceOpen }) =
         variant="h6"
         component="h3"
         sx={{
-          fontFamily: 'Fraunces, serif',
+          fontFamily: '"Nunito", sans-serif',
           fontWeight: 600,
           fontSize: '1.2rem',
           color: 'text.primary',
@@ -1297,7 +1297,7 @@ const Help = () => {
             </Box>
             <Typography
               sx={{
-                fontFamily: 'Fraunces, serif',
+                fontFamily: '"Nunito", sans-serif',
                 fontWeight: 600,
                 fontSize: '1.25rem',
                 color: 'text.primary',
@@ -1386,7 +1386,7 @@ const Help = () => {
             variant="h2"
             component="h1"
             sx={{
-              fontFamily: 'Fraunces, serif',
+              fontFamily: '"Nunito", sans-serif',
               fontWeight: 500,
               fontSize: { xs: '2.1rem', sm: '2.9rem' },
               color: 'text.primary',
@@ -1701,7 +1701,7 @@ const Help = () => {
                 variant="h4"
                 component="h2"
                 sx={{
-                  fontFamily: 'Fraunces, serif',
+                  fontFamily: '"Nunito", sans-serif',
                   fontWeight: 500,
                   fontSize: { xs: '1.5rem', sm: '1.8rem' },
                   color: 'text.primary',
@@ -1784,7 +1784,7 @@ const Help = () => {
                 variant="h4"
                 component="h2"
                 sx={{
-                  fontFamily: 'Fraunces, serif',
+                  fontFamily: '"Nunito", sans-serif',
                   fontWeight: 500,
                   fontSize: { xs: '1.5rem', sm: '1.8rem' },
                   color: 'text.primary',
@@ -1879,7 +1879,7 @@ const Help = () => {
                   variant="h5"
                   component="h2"
                   sx={{
-                    fontFamily: 'Fraunces, serif',
+                    fontFamily: '"Nunito", sans-serif',
                     fontWeight: 500,
                     fontSize: { xs: '1.35rem', sm: '1.6rem' },
                     color: 'text.primary',

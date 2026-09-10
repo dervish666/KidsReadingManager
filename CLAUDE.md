@@ -177,6 +177,8 @@ Hooks: `useAuth()`, `useData()`, `useUI()`. The composite `AppProvider` in `src/
 
 **Owner Organization Switching**: Owners can switch org context via `X-Organization-Id` header (set in `fetchWithAuth()` when `activeOrganizationId` is set). Backend validates this in `tenantMiddleware()` — only works for `owner` role.
 
+**The page sheet is content-height, capped at the viewport.** The `Paper` inside `#main-content` in `src/App.js` uses `maxHeight: calc(100dvh - 220px)` with `overflow: auto`, not a fixed `height`. Long pages (Students, Stats) still scroll inside the sheet with the header and bottom nav fixed; short pages (Record Session, Recommend) end where their content ends instead of sitting in a card with 600px of empty cream. It was a fixed height until v3.133.0.
+
 **Frontend-Backend Integration**:
 
 - Development: Rsbuild proxies `/api` to `http://localhost:8787` (see `rsbuild.config.mjs`)
