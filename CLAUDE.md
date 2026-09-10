@@ -150,6 +150,7 @@ Three auth modes coexist, auto-detected from environment variables (see the auth
 
 1. **MyLogin SSO** (`MYLOGIN_CLIENT_ID` configured): OAuth2 Authorization Code flow via MyLogin for school users. Primary auth for schools. Routes in `src/routes/mylogin.js`.
 2. **Email/Password** (`JWT_SECRET` configured): JWT auth with email/password for owner account and fallback.
+3. **Username/password** (same `JWT_SECRET` path): manually created staff accounts sign in as `firstname.lastname`. For schools that cannot get a Wonde/MyLogin approval through the academy, an admin creates accounts by hand — and most of that staff have no school email address at all. See the Manual Staff Accounts section below.
    A third mode — **legacy shared-password** (`WORKER_ADMIN_PASSWORD`, KV-backed) — was removed in 2026-08. Nothing used it, but every route carried an `isMultiTenantMode(c)` branch to serve it, and `services/kvService.js`, `middleware/auth.js`, `routes/data.js` and a whole second login form existed only for it. `JWT_SECRET` is now required and the Worker returns 500 without one. **KV itself is still used** — org-status cache, recommendations cache, Wonde sync lock, demo-reset fingerprint — just not as a data store.
 
 After MyLogin OAuth completes, the system issues a standard Tally JWT — the frontend auth flow works identically for SSO and email/password users. JWT payload includes `authProvider` field (`'mylogin'` or `'local'`).
@@ -212,7 +213,7 @@ Permissions enforced via `requireOwner()`, `requireAdmin()`, `requireTeacher()`,
 ### Key Tables
 
 - `organizations` - Multi-tenant foundation (soft delete via `is_active`, `legal_hold` prevents automated purge, `purged_at` marks anonymised tombstones)
-- `users` - Accounts with roles and org FK (soft delete via `is_active`)
+- `users` - Accounts with roles and org FK (soft delete via `is_active`). `username` is NULL for email/SSO accounts and `firstname.lastname` for manually created staff — see Manual Staff Accounts
 - `students` - Organization-scoped, has `reading_level_min`/`reading_level_max` range, demographics from Wonde (`date_of_birth`, `gender`, `first_language`, `eal_detailed_status`)
 - `reading_sessions` - Session data linked to students (hard delete)
 - `books` - Global catalog with FTS5 search (`books_fts` virtual table)
@@ -311,6 +312,16 @@ Cron triggers (all in `src/worker.js` `scheduled` handler):
 **The snapshot references global tables it does not own**, so it rots on its own: `org_book_selections.book_id` and `reading_sessions.book_id` point at `books`, and `student_preferences.genre_id` at `genres`. An owner deleting a book or retiring a genre leaves those rows failing `FOREIGN KEY constraint failed` on _every_ reset — seven book selections and ten preferences had been failing that way since the April export, invisible until v3.116.0 started reporting fallbacks. `EXTERNAL_REFS` in `src/services/demoReset.js` now reads each referenced table's id set once per reset and skips the dead rows, so the demo self-heals instead of needing the snapshot re-cut; the load is deliberately **fail-open** (a table it cannot read is left unfiltered, because failing closed would serve a demo with an empty library). Two rules that follow: the fingerprint is withheld when a step actually **failed** but not when rows were merely **skipped** (skips are stable, expected drift — blocking on them would restore the hourly rebuild), and skipped/failed counts are logged separately because `${rows.length} rows inserted` once printed 2,411 on a reset that landed 2,404.
 
 **`scripts/export-demo-snapshot.js` is not safe to run blind.** It used to carry `AND session_date > date('now', '-90 days')` on `reading_sessions`, and the demo's sessions are fixed January–April dates — so from mid-July onwards, re-exporting would have written a snapshot with **zero** reading sessions and the next reset would have served an empty demo school. The window is gone, but the general point stands: the export takes whatever is in the demo org _right now_, so check the row counts it prints against the previous snapshot before committing the result.
+
+### Manual Staff Accounts (username sign-in)
+
+For a school with no MIS connection, an admin creates staff by hand in User Management. `POST /api/users` takes either an `email` or a `username`, plus `classIds` so a new teacher is usable without a second trip through the detail dialog.
+
+- **`users.username` is globally unique, not per-org** (partial unique index, migration 0077 — partial so the NULLs on every existing account do not collide). The login box asks for one identifier and there is no school picker to disambiguate `john.smith` at two schools, so `allocateUsername()` suffixes `2`, `3`, … on collision. It checks inactive rows too: a deactivated account keeps its username.
+- **`users.email` is `UNIQUE NOT NULL` globally**, so an account with no address stores `<username>@no-email.invalid` — the same trick `mylogin.js` already uses. Nothing may surface it: `rowToUser`, the login response and `/me` all map a placeholder to `null`, and the login handler **refuses** it as a credential before any lookup, so a manual account has exactly one way in.
+- **This is the one place a password is returned in an API response**, and the condition is narrow: no real email, so no inbox to send it to. Both `POST /api/users` and `POST /api/users/:id/reset-password` return `temporaryPassword` only in that case. Withholding it would mean nobody could ever sign in. The UI holds those credentials in a dismissible panel above the user table (`newCredentials` in `UserManagement.js`) — it is the only copy, and deliberately not persisted.
+- **Password recovery for these accounts is the admin, not email.** `/api/auth/forgot-password` looks up by email and a placeholder can never receive one. The Reset password button on the user detail dialog is the recovery path, and the forgot-password view says so.
+- All of it lives in `src/utils/username.js`, shared by the Worker and the frontend (it is pure except `allocateUsername`). The Add User dialog derives the username from the typed name and lets the admin override it.
 
 ### Wonde + MyLogin Integration
 

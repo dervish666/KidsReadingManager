@@ -362,6 +362,45 @@ files:
         returns: object
         description: Data-minimised profile for AI; strips demographics but forwards coarse ageBand
 
+  utils/username.js:
+    description: firstname.lastname usernames for manually created staff accounts — schools that cannot complete a Wonde/MyLogin approval, whose staff often have no school email. Globally unique (partial unique index, migration 0077) because the login box takes one identifier and there is no school picker.
+    exports:
+      - name: usernameFromName
+        kind: function
+        params: [{name: name}]
+        returns: string
+        description: Display name → firstname.lastname candidate; folds accents, drops middle names, returns '' when nothing usable remains
+      - name: normaliseUsername
+        kind: function
+        params: [{name: raw}]
+        returns: string
+        description: Clean a hand-typed username to the same character set, so it stays typable at the login box
+      - name: isValidUsername
+        kind: function
+        params: [{name: value}]
+        returns: boolean
+        description: 3-40 chars, lowercase alphanumeric with dots and hyphens, alphanumeric at both ends
+      - name: looksLikeEmail
+        kind: function
+        params: [{name: identifier}]
+        returns: boolean
+        description: Deliberately loose — anything with an @ is treated as an email at login, everything else as a username
+      - name: placeholderEmailFor
+        kind: function
+        params: [{name: username}]
+        returns: string
+        description: "<username>@no-email.invalid — the value stored in users.email when there is no real address"
+      - name: isPlaceholderEmail
+        kind: function
+        params: [{name: email}]
+        returns: boolean
+        description: True for a placeholder; gates every email send and hides the address from every response
+      - name: allocateUsername
+        kind: function
+        params: [{name: db}, {name: base}, {name: options}]
+        returns: Promise<string>
+        description: First free username, suffixing 2, 3, … on collision; checks inactive rows too and throws rather than looping
+
   utils/yearGroup.js:
     description: Pure UK year-group parsing (shared by recommendations + badge key stage); robust to Wonde "2"/"R", demo "Year 2", "Y2", and class-name fallback
     exports:

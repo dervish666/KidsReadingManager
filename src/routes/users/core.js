@@ -20,6 +20,15 @@ import { sendWelcomeEmail } from '../../utils/email.js';
 import { requireDB as getDB } from '../../utils/routeHelpers.js';
 import { rowToUser } from '../../utils/rowMappers.js';
 import {
+  usernameFromName,
+  normaliseUsername,
+  isValidUsername,
+  allocateUsername,
+  placeholderEmailFor,
+  isPlaceholderEmail,
+  NO_EMAIL_DOMAIN,
+} from '../../utils/username.js';
+import {
   notFoundError,
   badRequestError,
   forbiddenError,
@@ -45,7 +54,7 @@ coreRouter.get('/', requireAdmin(), async (c) => {
     // Owners can see users from all organizations, admins only from their own
     if (userRole === ROLES.OWNER) {
       query = `
-        SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
+        SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.username, u.name, u.role,
                u.is_active, u.last_login_at, u.created_at, u.updated_at,
                u.auth_provider, u.mylogin_id, u.wonde_employee_id
         FROM users u
@@ -56,7 +65,7 @@ coreRouter.get('/', requireAdmin(), async (c) => {
       params = [];
     } else {
       query = `
-        SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
+        SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.username, u.name, u.role,
                u.is_active, u.last_login_at, u.created_at, u.updated_at,
                u.auth_provider, u.mylogin_id, u.wonde_employee_id
         FROM users u
@@ -105,7 +114,7 @@ coreRouter.get('/:id', async (c) => {
       user = await db
         .prepare(
           `
-        SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
+        SELECT id, organization_id, email, username, name, role, is_active, last_login_at, created_at, updated_at
         FROM users
         WHERE id = ? AND is_active = 1
       `
@@ -116,7 +125,7 @@ coreRouter.get('/:id', async (c) => {
       user = await db
         .prepare(
           `
-        SELECT id, organization_id, email, name, role, is_active, last_login_at, created_at, updated_at
+        SELECT id, organization_id, email, username, name, role, is_active, last_login_at, created_at, updated_at
         FROM users
         WHERE id = ? AND organization_id = ? AND is_active = 1
       `
@@ -143,11 +152,20 @@ coreRouter.get('/:id', async (c) => {
  * Requires: admin role
  *
  * Body: {
- *   email: string,
  *   name: string,
  *   role: 'admin' | 'teacher' | 'readonly',
- *   password?: string (optional, will generate if not provided)
+ *   email?: string       — omit for a manual account with no school email
+ *   username?: string    — firstname.lastname; derived from name when omitted
+ *                          and no email was given
+ *   password?: string    — generated when omitted
+ *   organizationId?: string (owner only)
+ *   classIds?: string[]  — class assignments, applied in the same request
  * }
+ *
+ * Either an email or a username is required. Accounts created without an
+ * email get a placeholder address (the column is UNIQUE NOT NULL) and their
+ * temporary password is returned in the response, because there is no inbox
+ * to send it to — see the comment at that return.
  */
 coreRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
   try {
@@ -168,20 +186,35 @@ coreRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
     }
 
     // Validate required fields
-    if (!email || !name || !role) {
+    if (!name || !role) {
       return c.json(
         {
           error: 'Missing required fields',
-          required: ['email', 'name', 'role'],
+          required: ['name', 'role'],
         },
         400
       );
     }
 
+    const hasEmail = typeof email === 'string' && email.trim() !== '';
+    const usernameRequested = typeof body.username === 'string' && body.username.trim() !== '';
+
+    if (!hasEmail && !usernameRequested && !usernameFromName(name)) {
+      throw badRequestError(
+        'An email address or a username is required. This name could not be turned into a username automatically — enter one.'
+      );
+    }
+
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw badRequestError('Invalid email format');
+    if (hasEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw badRequestError('Invalid email format');
+      }
+      // The placeholder domain is ours; a real account must not claim one.
+      if (isPlaceholderEmail(email)) {
+        throw badRequestError(`Email addresses at ${NO_EMAIL_DOMAIN} are not accepted`);
+      }
     }
 
     // Validate role
@@ -201,16 +234,6 @@ coreRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
       throw forbiddenError('Only owners can create admin users');
     }
 
-    // Check if email already exists (among active users)
-    const existingUser = await db
-      .prepare('SELECT id FROM users WHERE email = ? AND is_active = 1')
-      .bind(email.toLowerCase())
-      .first();
-
-    if (existingUser) {
-      throw createError('Email already registered', 409);
-    }
-
     // Fetch organization name for welcome email
     const org = await db
       .prepare('SELECT name FROM organizations WHERE id = ? AND is_active = 1')
@@ -221,53 +244,132 @@ coreRouter.post('/', requireAdmin(), auditLog('create', 'user'), async (c) => {
       throw notFoundError('Organization not found');
     }
 
+    // Classes are assigned in the same request so a manually created teacher is
+    // usable immediately, rather than needing a second trip through the detail
+    // dialog. Validate before writing anything.
+    const classIds = Array.isArray(body.classIds) ? [...new Set(body.classIds)] : [];
+    if (classIds.length > 0) {
+      const placeholders = classIds.map(() => '?').join(',');
+      const validClasses = await db
+        .prepare(
+          `SELECT id FROM classes WHERE organization_id = ? AND is_active = 1 AND id IN (${placeholders})`
+        )
+        .bind(targetOrgId, ...classIds)
+        .all();
+
+      const validIds = new Set((validClasses.results || []).map((r) => r.id));
+      const invalid = classIds.filter((id) => !validIds.has(id));
+      if (invalid.length > 0) {
+        throw badRequestError(
+          `Invalid class IDs (not in the target organization or inactive): ${invalid.join(', ')}`
+        );
+      }
+    }
+
+    // Resolve the username. Requested value wins; otherwise derive one from the
+    // name for email-less accounts. Accounts created with an email keep the
+    // existing behaviour (no username) unless one was asked for.
+    let username = null;
+    if (usernameRequested || !hasEmail) {
+      const base = usernameRequested ? normaliseUsername(body.username) : usernameFromName(name);
+      if (!isValidUsername(base)) {
+        throw badRequestError(
+          'Username must be 3-40 characters of letters, numbers, dots and hyphens (for example sarah.jones)'
+        );
+      }
+      username = await allocateUsername(db, base);
+    }
+
+    const finalEmail = hasEmail ? email.toLowerCase() : placeholderEmailFor(username);
+
+    // Check if email already exists (among active users)
+    const existingUser = await db
+      .prepare('SELECT id FROM users WHERE email = ? AND is_active = 1')
+      .bind(finalEmail)
+      .first();
+
+    if (existingUser) {
+      throw createError('Email already registered', 409);
+    }
+
     // Generate password if not provided
+    const generatedPassword = !password;
     const userPassword = password || generateTemporaryPassword();
     const passwordHash = await hashPassword(userPassword);
 
     // Create user
     const userId = generateId();
-    await db
-      .prepare(
-        `
-      INSERT INTO users (id, organization_id, email, password_hash, name, role, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
+    const statements = [
+      db
+        .prepare(
+          `
+      INSERT INTO users (id, organization_id, email, username, password_hash, name, role, is_active, auth_provider)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'local')
     `
-      )
-      .bind(userId, targetOrgId, email.toLowerCase(), passwordHash, name, role)
-      .run();
+        )
+        .bind(userId, targetOrgId, finalEmail, username, passwordHash, name, role),
+      ...classIds.map((classId) =>
+        db
+          .prepare(
+            `INSERT OR IGNORE INTO class_assignments (id, class_id, user_id) VALUES (?, ?, ?)`
+          )
+          .bind(generateId(), classId, userId)
+      ),
+    ];
 
-    // Send invitation email with temporary password
-    // SECURITY: Never include temporary passwords in API responses
-    // The password should only be sent via email to the user
+    await db.batch(statements);
+
+    // Send invitation email with temporary password.
+    // SECURITY: never include a password in an API response when there is an
+    // inbox to send it to.
     const baseUrl = c.env.APP_URL || c.req.header('origin') || `https://${c.req.header('host')}`;
 
-    const emailResult = await sendWelcomeEmail(
-      c.env,
-      email.toLowerCase(),
-      name,
-      org.name,
-      userPassword,
-      baseUrl
-    );
+    let emailResult = { success: false, skipped: true };
+    if (hasEmail) {
+      emailResult = await sendWelcomeEmail(
+        c.env,
+        finalEmail,
+        name,
+        org.name,
+        userPassword,
+        baseUrl
+      );
 
-    if (!emailResult.success) {
-      console.warn('Failed to send welcome email:', emailResult.error);
+      if (!emailResult.success) {
+        console.warn('Failed to send welcome email:', emailResult.error);
+      }
+    }
+
+    // An email-less account has no delivery channel, so the admin who created
+    // it is the channel: the generated password is returned once, to that
+    // admin, over the same authenticated request that created the account.
+    // Withholding it here would just mean nobody could ever sign in.
+    const showPassword = !hasEmail && generatedPassword;
+
+    let message;
+    if (!hasEmail) {
+      message =
+        'User created. Give them the username and password shown — this is the only time the password is displayed.';
+    } else if (emailResult.success) {
+      message = 'User created successfully. An invitation email has been sent.';
+    } else {
+      message = 'User created successfully. Note: invitation email could not be sent.';
     }
 
     return c.json(
       {
-        message: emailResult.success
-          ? 'User created successfully. An invitation email has been sent.'
-          : 'User created successfully. Note: invitation email could not be sent.',
+        message,
         user: {
           id: userId,
-          email: email.toLowerCase(),
+          email: hasEmail ? finalEmail : null,
+          username,
           name,
           role,
           isActive: true,
+          classIds,
         },
         emailSent: emailResult.success,
+        ...(showPassword ? { temporaryPassword: userPassword } : {}),
       },
       201
     );
@@ -311,7 +413,7 @@ coreRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       existingUser = await db
         .prepare(
           `
-        SELECT id, organization_id, email, name, role, is_active, last_login_at,
+        SELECT id, organization_id, email, username, name, role, is_active, last_login_at,
                created_at, updated_at, auth_provider, mylogin_id, wonde_employee_id
         FROM users WHERE id = ? AND is_active = 1
       `
@@ -322,7 +424,7 @@ coreRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       existingUser = await db
         .prepare(
           `
-        SELECT id, organization_id, email, name, role, is_active, last_login_at,
+        SELECT id, organization_id, email, username, name, role, is_active, last_login_at,
                created_at, updated_at, auth_provider, mylogin_id, wonde_employee_id
         FROM users WHERE id = ? AND organization_id = ? AND is_active = 1
       `
@@ -408,6 +510,38 @@ coreRouter.put('/:id', auditLog('update', 'user'), async (c) => {
       params.push(role);
     }
 
+    // Admins can correct a username (a misspelled name makes an unusable one).
+    // Only for accounts that already sign in with one — adding a username to an
+    // email account is a create-time decision, not an edit.
+    if (body.username !== undefined && isAdmin) {
+      if (!existingUser.username) {
+        throw badRequestError('This account signs in with an email address, not a username');
+      }
+      const next = normaliseUsername(body.username);
+      if (!isValidUsername(next)) {
+        throw badRequestError(
+          'Username must be 3-40 characters of letters, numbers, dots and hyphens (for example sarah.jones)'
+        );
+      }
+      if (next !== existingUser.username) {
+        const clash = await db
+          .prepare('SELECT id FROM users WHERE username = ? AND id != ?')
+          .bind(next, targetUserId)
+          .first();
+        if (clash) {
+          throw createError('That username is already taken', 409);
+        }
+        updates.push('username = ?');
+        params.push(next);
+        // The placeholder address is derived from the username, so it has to
+        // follow — otherwise it still spells the old name forever.
+        if (isPlaceholderEmail(existingUser.email)) {
+          updates.push('email = ?');
+          params.push(placeholderEmailFor(next));
+        }
+      }
+    }
+
     if (isActive !== undefined && isAdmin) {
       updates.push('is_active = ?');
       params.push(isActive ? 1 : 0);
@@ -438,7 +572,7 @@ coreRouter.put('/:id', auditLog('update', 'user'), async (c) => {
     const updatedUser = await db
       .prepare(
         `
-      SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.name, u.role,
+      SELECT u.id, u.organization_id, o.name as organization_name, u.email, u.username, u.name, u.role,
              u.is_active, u.last_login_at, u.created_at, u.updated_at
       FROM users u
       LEFT JOIN organizations o ON u.organization_id = o.id
@@ -587,29 +721,45 @@ coreRouter.post('/:id/reset-password', requireAdmin(), auditLog('update', 'user'
       .bind(targetUserId)
       .run();
 
-    // Send email with new password
-    // SECURITY: Never include passwords in API responses
-    // The password should only be sent via email to the user
+    // Send email with new password.
+    // SECURITY: never include a password in an API response when there is an
+    // inbox to send it to. A manually created account has no inbox — its
+    // address is a placeholder — so the password goes back to the admin who
+    // asked for the reset, and to nobody else.
     const baseUrl = c.env.APP_URL || c.req.header('origin') || `https://${c.req.header('host')}`;
+    const hasRealEmail = !isPlaceholderEmail(existingUser.email);
 
-    const emailResult = await sendWelcomeEmail(
-      c.env,
-      existingUser.email,
-      existingUser.name,
-      existingUser.organization_name,
-      newPassword,
-      baseUrl
-    );
+    let emailResult = { success: false, skipped: true };
+    if (hasRealEmail) {
+      emailResult = await sendWelcomeEmail(
+        c.env,
+        existingUser.email,
+        existingUser.name,
+        existingUser.organization_name,
+        newPassword,
+        baseUrl
+      );
 
-    if (!emailResult.success) {
-      console.warn('Failed to send password reset email:', emailResult.error);
+      if (!emailResult.success) {
+        console.warn('Failed to send password reset email:', emailResult.error);
+      }
+    }
+
+    let message;
+    if (!hasRealEmail) {
+      message =
+        'Password reset. Give them the new password shown — this is the only time it is displayed.';
+    } else if (emailResult.success) {
+      message = 'Password reset successfully. The new password has been sent via email.';
+    } else {
+      message = 'Password reset successfully. Note: email notification could not be sent.';
     }
 
     return c.json({
-      message: emailResult.success
-        ? 'Password reset successfully. The new password has been sent via email.'
-        : 'Password reset successfully. Note: email notification could not be sent.',
+      message,
       emailSent: emailResult.success,
+      username: existingUser.username || null,
+      ...(hasRealEmail ? {} : { temporaryPassword: newPassword }),
     });
   } catch (error) {
     if (error.status) throw error;

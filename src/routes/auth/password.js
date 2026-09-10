@@ -11,6 +11,7 @@ import { generateId } from '../../utils/helpers.js';
 import { validatePassword } from '../../utils/validation.js';
 import { hashPassword, verifyPassword, hashToken } from '../../utils/crypto.js';
 import { sendPasswordResetEmail } from '../../utils/email.js';
+import { isPlaceholderEmail } from '../../utils/username.js';
 import { requireDB as getDB } from '../../utils/routeHelpers.js';
 
 export const passwordRouter = new Hono();
@@ -40,8 +41,11 @@ passwordRouter.post('/forgot-password', async (c) => {
       .bind(email.toLowerCase())
       .first();
 
-    // Always return success to prevent email enumeration
-    if (!user) {
+    // Always return success to prevent email enumeration.
+    // A manually created account's address is a placeholder, not an inbox — it
+    // gets the same answer as an unknown address rather than a reset token
+    // nobody can ever receive. Their recovery path is an admin reset.
+    if (!user || isPlaceholderEmail(user.email)) {
       return c.json({ message: 'If the email exists, a reset link will be sent' });
     }
 

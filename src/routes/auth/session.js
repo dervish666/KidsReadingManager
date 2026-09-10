@@ -1,7 +1,7 @@
 /**
  * JWT session lifecycle routes.
  *
- *   POST /login    — email/password authentication (with account lockout)
+ *   POST /login    — email-or-username + password authentication (with lockout)
  *   POST /refresh  — rotate the refresh token, mint a new access token
  *   POST /logout   — revoke the refresh token and clear the cookie
  *   GET  /me       — current user info (requires authentication)
@@ -28,6 +28,7 @@ import {
   clearFailedAttempts,
   LOCKOUT_DURATION_MINUTES,
 } from './_shared.js';
+import { looksLikeEmail, isPlaceholderEmail } from '../../utils/username.js';
 
 export const sessionRouter = new Hono();
 
@@ -45,11 +46,24 @@ sessionRouter.post('/login', async (c) => {
     const db = getDB(c.env);
     const body = await c.req.json();
 
-    const { email, password } = body;
+    // `email` also carries a username: manually created staff accounts have no
+    // school email and sign in as firstname.lastname. `username` is accepted as
+    // an explicit alias so a caller can be unambiguous.
+    const identifier = (body.email ?? body.username ?? '').toString().trim();
+    const { password } = body;
 
-    if (!email || !password) {
-      return c.json({ error: 'Email and password required' }, 400);
+    if (!identifier || !password) {
+      return c.json({ error: 'Email or username, and password, are required' }, 400);
     }
+
+    // The placeholder address is bookkeeping for a NOT NULL column, not a
+    // credential. Refuse it outright so there is exactly one way into a manual
+    // account: its username.
+    if (isPlaceholderEmail(identifier)) {
+      return c.json({ error: 'Invalid credentials' }, 401);
+    }
+
+    const byEmail = looksLikeEmail(identifier);
 
     // Get client info for logging
     const ipAddress =
@@ -57,7 +71,7 @@ sessionRouter.post('/login', async (c) => {
     const userAgent = c.req.header('user-agent') || 'unknown';
 
     // Check if account is locked due to too many failed attempts
-    if (await isAccountLocked(db, email)) {
+    if (await isAccountLocked(db, identifier)) {
       return c.json(
         {
           error:
@@ -68,17 +82,17 @@ sessionRouter.post('/login', async (c) => {
       );
     }
 
-    // Find user by email (only active users in active orgs)
+    // Find user by email or username (only active users in active orgs)
     const user = await db
       .prepare(
         `
       SELECT u.*, o.name as org_name, o.slug as org_slug, o.is_active as org_active
       FROM users u
       INNER JOIN organizations o ON u.organization_id = o.id
-      WHERE u.email = ? AND u.is_active = 1 AND o.is_active = 1
+      WHERE ${byEmail ? 'u.email = ?' : 'u.username = ?'} AND u.is_active = 1 AND o.is_active = 1
     `
       )
-      .bind(email.toLowerCase())
+      .bind(identifier.toLowerCase())
       .first();
 
     if (!user) {
@@ -87,20 +101,20 @@ sessionRouter.post('/login', async (c) => {
       // PBKDF2 compute shape matches exactly — closes the hashPassword vs
       // verifyPassword code-path delta that leaked email existence.
       await verifyPassword(password, DUMMY_PASSWORD_HASH);
-      await recordLoginAttempt(db, email, ipAddress, userAgent, false);
-      return c.json({ error: 'Invalid email or password' }, 401);
+      await recordLoginAttempt(db, identifier, ipAddress, userAgent, false);
+      return c.json({ error: 'Invalid credentials' }, 401);
     }
 
     // Verify password (supports both old 100k and new 600k iterations)
     const passwordResult = await verifyPassword(password, user.password_hash);
     if (!passwordResult.valid) {
-      await recordLoginAttempt(db, email, ipAddress, userAgent, false);
-      return c.json({ error: 'Invalid email or password' }, 401);
+      await recordLoginAttempt(db, identifier, ipAddress, userAgent, false);
+      return c.json({ error: 'Invalid credentials' }, 401);
     }
 
     // Successful login - record it and clear failed attempts
-    await recordLoginAttempt(db, email, ipAddress, userAgent, true);
-    await clearFailedAttempts(db, email);
+    await recordLoginAttempt(db, identifier, ipAddress, userAgent, true);
+    await clearFailedAttempts(db, identifier);
 
     // If password was hashed with old iteration count, rehash with new count
     if (passwordResult.needsRehash) {
@@ -169,11 +183,16 @@ sessionRouter.post('/login', async (c) => {
     const isProduction = c.env.ENVIRONMENT !== 'development';
     c.header('Set-Cookie', buildRefreshCookie(refreshTokenData.token, isProduction));
 
+    // A manually created account's address is a placeholder, not something the
+    // teacher should ever be shown or asked to remember.
+    const displayEmail = isPlaceholderEmail(user.email) ? null : user.email;
+
     return c.json({
       accessToken,
       user: {
         id: user.id,
-        email: user.email,
+        email: displayEmail,
+        username: user.username || null,
         name: user.name,
         role: user.role,
         assignedClassIds,
@@ -415,7 +434,7 @@ sessionRouter.get('/me', async (c) => {
     const fullUser = await db
       .prepare(
         `
-      SELECT u.id, u.email, u.name, u.role, u.last_login_at, u.created_at,
+      SELECT u.id, u.email, u.username, u.name, u.role, u.last_login_at, u.created_at,
              o.id as org_id, o.name as org_name, o.slug as org_slug
       FROM users u
       INNER JOIN organizations o ON u.organization_id = o.id
@@ -432,7 +451,8 @@ sessionRouter.get('/me', async (c) => {
     return c.json({
       user: {
         id: fullUser.id,
-        email: fullUser.email,
+        email: isPlaceholderEmail(fullUser.email) ? null : fullUser.email,
+        username: fullUser.username || null,
         name: fullUser.name,
         role: fullUser.role,
         lastLoginAt: fullUser.last_login_at,

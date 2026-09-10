@@ -56,7 +56,7 @@ const Login = ({ onBackToLanding } = {}) => {
     setSuccessMessage(null);
 
     if (!email || !password) {
-      setLocalError('Email and password are required');
+      setLocalError('Enter your email or username, and your password');
       return;
     }
 
@@ -215,7 +215,7 @@ const Login = ({ onBackToLanding } = {}) => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
             <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.08)' }} />
             <Typography variant="body2" sx={{ px: 2, color: 'text.disabled', fontSize: '0.75rem' }}>
-              or sign in with email
+              or sign in with a Tally account
             </Typography>
             <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(0,0,0,0.08)' }} />
           </Box>
@@ -225,9 +225,13 @@ const Login = ({ onBackToLanding } = {}) => {
       <form onSubmit={handleSubmit}>
         <TextField
           fullWidth
-          type="email"
+          // Not type="email": staff at schools without an MIS connection get a
+          // firstname.lastname username instead, and the browser would refuse
+          // to submit one from an email input.
+          type="text"
           value={email}
-          label="Email"
+          label="Email or username"
+          autoComplete="username"
           onChange={(e) => setEmail(e.target.value)}
           autoFocus={!ssoEnabled}
           sx={{ mb: 2 }}
@@ -314,6 +318,13 @@ const Login = ({ onBackToLanding } = {}) => {
 
   const renderForgotPasswordForm = () => (
     <>
+      <Typography
+        variant="body2"
+        sx={{ mb: 2, color: 'text.secondary', fontSize: '0.8rem', textAlign: 'center' }}
+      >
+        Sign in with a username rather than an email? Ask whoever set up your Tally account to reset
+        your password for you.
+      </Typography>
       <form onSubmit={handleForgotPassword}>
         <TextField
           fullWidth

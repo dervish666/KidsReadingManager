@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import { formatRelativeTime } from '../utils/helpers';
+import { usernameFromName, normaliseUsername, isValidUsername } from '../utils/username';
 import {
   Box,
   Typography,
@@ -40,20 +42,37 @@ import {
   Info as InfoIcon,
   Sync as SyncIcon,
   Lock as LockIcon,
+  ContentCopy as ContentCopyIcon,
+  Badge as BadgeIcon,
+  VpnKey as VpnKeyIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 
+const EMPTY_FORM = {
+  name: '',
+  email: '',
+  username: '',
+  password: '',
+  confirmPassword: '',
+  role: 'teacher',
+  organizationId: '',
+};
+
 const UserManagement = () => {
-  const { fetchWithAuth, user } = useAuth();
+  const { fetchWithAuth, user, activeOrganizationId } = useAuth();
+  const { classes } = useData();
   const [users, setUsers] = useState([]);
   const [organizations, setOrganizations] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'teacher',
-    organizationId: '',
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  // 'username' — manual account, no school email, signs in as firstname.lastname.
+  // 'email'    — invitation emailed with a temporary password (the old flow).
+  const [signInMethod, setSignInMethod] = useState('username');
+  const [usernameEdited, setUsernameEdited] = useState(false);
+  const [newClassValue, setNewClassValue] = useState([]);
+  // Credentials for accounts created in this session. There is no inbox to send
+  // them to, so this list is the only copy — it is deliberately not persisted.
+  const [newCredentials, setNewCredentials] = useState([]);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -109,25 +128,48 @@ const UserManagement = () => {
     loadData();
   }, [fetchWithAuth]);
 
+  // Class options are loaded for the org the admin is currently looking at, so
+  // the picker is only honest when the new account lands in that same org.
+  const creatingInCurrentOrg =
+    !formData.organizationId ||
+    formData.organizationId === (activeOrganizationId || user?.organizationId);
+
+  // Suggested username, until the admin types their own.
+  const suggestedUsername = useMemo(() => usernameFromName(formData.name), [formData.name]);
+  const effectiveUsername = usernameEdited ? formData.username : suggestedUsername;
+
   const validateForm = () => {
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('All fields are required');
+    if (!formData.name) {
+      setError('A full name is required');
       return false;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+    if (signInMethod === 'email') {
+      if (!formData.email) {
+        setError('An email address is required, or switch to a username');
+        return false;
+      }
+      if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        setError('Please enter a valid email address');
+        return false;
+      }
+    } else if (!isValidUsername(normaliseUsername(effectiveUsername))) {
+      setError(
+        'Enter a username of 3-40 letters, numbers, dots or hyphens (for example sarah.jones)'
+      );
       return false;
     }
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return false;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      setError('Please enter a valid email address');
-      return false;
+    // A password is optional — one is generated when this is left blank.
+    if (formData.password) {
+      if (formData.password.length < 8) {
+        setError('Password must be at least 8 characters');
+        return false;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        return false;
+      }
     }
 
     // Organization is only required if there are multiple organizations
@@ -151,33 +193,59 @@ const UserManagement = () => {
 
     setLoading(true);
     try {
+      const payload = {
+        name: formData.name,
+        role: formData.role,
+        // Only send classes when the picker was showing the target school's
+        // own classes — otherwise a leftover selection would name classes the
+        // new account's organization does not own, and the server would 400.
+        classIds: creatingInCurrentOrg ? newClassValue.map((cls) => cls.id) : [],
+      };
+      if (signInMethod === 'email') {
+        payload.email = formData.email;
+      } else {
+        payload.username = normaliseUsername(effectiveUsername);
+      }
+      if (formData.password) payload.password = formData.password;
+      if (formData.organizationId) payload.organizationId = formData.organizationId;
+
       const response = await fetchWithAuth('/api/users', {
         method: 'POST',
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role,
-        }),
+        body: JSON.stringify(payload),
       });
 
       // fetchWithAuth returns a Response object — check status
+      let data = {};
       if (response && typeof response.json === 'function') {
+        data = await response.json().catch(() => ({}));
         if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || `Registration failed (${response.status})`);
+          throw new Error(data.error || `Registration failed (${response.status})`);
         }
+      } else {
+        data = response || {};
       }
 
-      setSuccess('User registered successfully');
+      // A generated password comes back exactly once, for accounts with no
+      // inbox. Hold it on screen until the admin dismisses it.
+      if (data.temporaryPassword) {
+        setNewCredentials((prev) => [
+          ...prev,
+          {
+            id: data.user?.id,
+            name: formData.name,
+            username: data.user?.username || normaliseUsername(effectiveUsername),
+            password: data.temporaryPassword,
+          },
+        ]);
+        setSuccess(null);
+      } else {
+        setSuccess(data.message || 'User created successfully');
+      }
+
       setAddDialogOpen(false);
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        role: 'teacher',
-      });
+      setFormData(EMPTY_FORM);
+      setUsernameEdited(false);
+      setNewClassValue([]);
 
       // Refresh user list
       fetchUsers();
@@ -185,6 +253,51 @@ const UserManagement = () => {
       setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const copyText = (text) => {
+    navigator.clipboard?.writeText(text).catch(() => {
+      /* clipboard blocked — the value is on screen to read anyway */
+    });
+  };
+
+  const credentialsAsText = (list) =>
+    list.map((cred) => `${cred.name}\t${cred.username}\t${cred.password}`).join('\n');
+
+  const handleResetPassword = async (targetUser) => {
+    setError(null);
+    setResettingPassword(true);
+    try {
+      const response = await fetchWithAuth(`/api/users/${targetUser.id}/reset-password`, {
+        method: 'POST',
+      });
+      let data = {};
+      if (response && typeof response.json === 'function') {
+        data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `Reset failed (${response.status})`);
+      } else {
+        data = response || {};
+      }
+
+      if (data.temporaryPassword) {
+        setNewCredentials((prev) => [
+          ...prev,
+          {
+            id: targetUser.id,
+            name: targetUser.name,
+            username: data.username || targetUser.username,
+            password: data.temporaryPassword,
+          },
+        ]);
+        setDetailDialogOpen(false);
+      } else {
+        setSuccess(data.message || 'Password reset');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to reset password');
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -321,7 +434,8 @@ const UserManagement = () => {
       const matchesSearch =
         !searchQuery ||
         u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchQuery.toLowerCase());
+        u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.username?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesAuth =
         authFilter === 'all' ||
         (authFilter === 'sso' && u.authProvider === 'mylogin') ||
@@ -420,11 +534,71 @@ const UserManagement = () => {
         </Alert>
       )}
 
+      {newCredentials.length > 0 && (
+        <Alert
+          severity="warning"
+          icon={<VpnKeyIcon />}
+          sx={{ mb: 2 }}
+          action={
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                size="small"
+                startIcon={<ContentCopyIcon />}
+                onClick={() => copyText(credentialsAsText(newCredentials))}
+              >
+                Copy all
+              </Button>
+              <IconButton
+                size="small"
+                aria-label="Dismiss new sign-in details"
+                onClick={() => setNewCredentials([])}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          }
+        >
+          <Typography variant="subtitle2" gutterBottom>
+            New sign-in details — write these down now
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            These accounts have no email address, so this is the only time the password is shown.
+            Closing this box loses it, and you would have to reset the password again.
+          </Typography>
+          <Box component="table" sx={{ borderSpacing: '0 4px', fontSize: '0.85rem' }}>
+            <Box component="tbody">
+              {newCredentials.map((cred, i) => (
+                <Box component="tr" key={`${cred.id}-${i}`}>
+                  <Box component="td" sx={{ pr: 2 }}>
+                    {cred.name}
+                  </Box>
+                  <Box component="td" sx={{ pr: 2, fontFamily: 'monospace' }}>
+                    {cred.username}
+                  </Box>
+                  <Box component="td" sx={{ pr: 1, fontFamily: 'monospace', fontWeight: 600 }}>
+                    {cred.password}
+                  </Box>
+                  <Box component="td">
+                    <IconButton
+                      size="small"
+                      aria-label={`Copy sign-in details for ${cred.name}`}
+                      onClick={() => copyText(`${cred.username}\t${cred.password}`)}
+                    >
+                      <ContentCopyIcon fontSize="inherit" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Alert>
+      )}
+
       {/* Search and filter bar */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
         <TextField
           size="small"
-          placeholder="Search by name or email..."
+          placeholder="Search by name, email or username..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           sx={{ minWidth: 280 }}
@@ -479,7 +653,17 @@ const UserManagement = () => {
                 filteredUsers.map((u) => (
                   <TableRow key={u.id} hover>
                     <TableCell>{u.name}</TableCell>
-                    <TableCell>{u.email}</TableCell>
+                    <TableCell>
+                      {u.email || (
+                        <Box
+                          component="span"
+                          sx={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center' }}
+                        >
+                          <BadgeIcon fontSize="inherit" sx={{ mr: 0.5, opacity: 0.6 }} />
+                          {u.username || '—'}
+                        </Box>
+                      )}
+                    </TableCell>
                     <TableCell>{u.organizationName || 'N/A'}</TableCell>
                     <TableCell>
                       <Chip label={u.role} color={getRoleColor(u.role)} size="small" />
@@ -560,16 +744,51 @@ const UserManagement = () => {
             margin="normal"
             required
           />
-          <TextField
-            fullWidth
-            label="Email Address"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            margin="normal"
-            required
-          />
+
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              How will they sign in?
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={signInMethod}
+              onChange={(e, val) => val && setSignInMethod(val)}
+            >
+              <ToggleButton value="username">Username</ToggleButton>
+              <ToggleButton value="email">Email invitation</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {signInMethod === 'username' ? (
+            <TextField
+              fullWidth
+              label="Username"
+              name="username"
+              value={effectiveUsername}
+              onChange={(e) => {
+                setUsernameEdited(true);
+                setFormData({ ...formData, username: e.target.value });
+              }}
+              margin="normal"
+              required
+              helperText="They sign in with this and a password. No email address needed. A number is added if it is already taken."
+              InputProps={{ sx: { fontFamily: 'monospace' } }}
+            />
+          ) : (
+            <TextField
+              fullWidth
+              label="Email Address"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              margin="normal"
+              required
+              helperText="An invitation with their password is emailed here."
+            />
+          )}
+
           <TextField
             fullWidth
             label="Password"
@@ -578,19 +797,20 @@ const UserManagement = () => {
             value={formData.password}
             onChange={handleInputChange}
             margin="normal"
-            required
-            helperText="At least 8 characters"
+            helperText="Leave blank to generate one"
           />
-          <TextField
-            fullWidth
-            label="Confirm Password"
-            name="confirmPassword"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={handleInputChange}
-            margin="normal"
-            required
-          />
+          {formData.password && (
+            <TextField
+              fullWidth
+              label="Confirm Password"
+              name="confirmPassword"
+              type="password"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              margin="normal"
+              required
+            />
+          )}
           <FormControl fullWidth margin="normal">
             <InputLabel>Role</InputLabel>
             <Select name="role" value={formData.role} onChange={handleInputChange} label="Role">
@@ -618,6 +838,32 @@ const UserManagement = () => {
                 ))}
               </Select>
             </FormControl>
+          )}
+
+          {creatingInCurrentOrg ? (
+            <Autocomplete
+              multiple
+              size="small"
+              options={classes || []}
+              value={newClassValue}
+              onChange={(_, val) => setNewClassValue(val)}
+              getOptionLabel={(opt) => opt.name || ''}
+              isOptionEqualToValue={(opt, val) => opt.id === val.id}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Classes"
+                  margin="normal"
+                  placeholder="Select classes..."
+                  helperText="Which classes this teacher looks after. Can be changed later."
+                />
+              )}
+            />
+          ) : (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Classes can be assigned after the account is created — open the new user and edit
+              their class assignments. This list only shows the school you are currently viewing.
+            </Alert>
           )}
         </DialogContent>
         <DialogActions>
@@ -651,7 +897,18 @@ const UserManagement = () => {
                 <Typography variant="body2" color="text.secondary">
                   Email
                 </Typography>
-                <Typography variant="body2">{detailUser.email}</Typography>
+                <Typography variant="body2">{detailUser.email || 'None'}</Typography>
+
+                {detailUser.username && (
+                  <>
+                    <Typography variant="body2" color="text.secondary">
+                      Username
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {detailUser.username}
+                    </Typography>
+                  </>
+                )}
 
                 <Typography variant="body2" color="text.secondary">
                   Role
@@ -673,7 +930,9 @@ const UserManagement = () => {
                     label={
                       detailUser.authProvider === 'mylogin'
                         ? 'MyLogin SSO'
-                        : 'Local (email/password)'
+                        : detailUser.username
+                          ? 'Local (username/password)'
+                          : 'Local (email/password)'
                     }
                     size="small"
                     variant="outlined"
@@ -708,6 +967,25 @@ const UserManagement = () => {
                   </>
                 )}
               </Box>
+
+              {detailUser.authProvider !== 'mylogin' && (
+                <Box sx={{ mt: 1, mb: 1 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<VpnKeyIcon />}
+                    disabled={resettingPassword}
+                    onClick={() => handleResetPassword(detailUser)}
+                  >
+                    {resettingPassword ? 'Resetting…' : 'Reset password'}
+                  </Button>
+                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                    {detailUser.email
+                      ? 'The new password is emailed to them.'
+                      : 'The new password is shown to you once — nowhere else.'}
+                  </Typography>
+                </Box>
+              )}
 
               <Box
                 sx={{

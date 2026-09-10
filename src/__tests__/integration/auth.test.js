@@ -377,7 +377,7 @@ describe('Auth API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Invalid email or password');
+      expect(data.error).toBe('Invalid credentials');
     });
 
     it('should return 401 for user in inactive organization (filtered by o.is_active = 1)', async () => {
@@ -402,7 +402,7 @@ describe('Auth API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Invalid email or password');
+      expect(data.error).toBe('Invalid credentials');
     });
 
     it('should succeed for active user in active organization', async () => {
@@ -477,7 +477,7 @@ describe('Auth API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Invalid email or password');
+      expect(data.error).toBe('Invalid credentials');
     });
 
     it('should return 401 for nonexistent user without revealing email existence', async () => {
@@ -501,7 +501,93 @@ describe('Auth API Routes', () => {
 
       expect(response.status).toBe(401);
       // Same error as invalid password to prevent email enumeration
-      expect(data.error).toBe('Invalid email or password');
+      expect(data.error).toBe('Invalid credentials');
+    });
+
+    it('signs in a manual account by username, not email', async () => {
+      // Staff at schools without an MIS connection have no email address, so
+      // the same field carries a firstname.lastname username.
+      let userLookupSql = null;
+      let boundIdentifier = null;
+      const mockDB = createMockDB((sql, args) => {
+        if (sql.includes('login_attempts') && sql.includes('COUNT')) return { count: 0 };
+        if (sql.includes('users u') && sql.includes('organizations o')) {
+          userLookupSql = sql;
+          boundIdentifier = args?.[0];
+          return {
+            id: 'user-1',
+            organization_id: 'org-1',
+            email: 'sarah.jones@no-email.invalid',
+            username: 'sarah.jones',
+            name: 'Sarah Jones',
+            role: 'teacher',
+            password_hash: 'hash',
+            org_name: 'Test School',
+            org_slug: 'test-school',
+            org_active: 1,
+          };
+        }
+        return null;
+      });
+
+      const app = createTestApp(mockDB);
+      verifyPassword.mockResolvedValueOnce({ valid: true, needsRehash: false });
+
+      const response = await makeRequest(app, 'POST', '/api/auth/login', {
+        email: 'Sarah.Jones',
+        password: 'temp-password',
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(userLookupSql).toContain('u.username = ?');
+      expect(userLookupSql).not.toContain('u.email = ?');
+      expect(boundIdentifier).toBe('sarah.jones');
+      expect(data.user.username).toBe('sarah.jones');
+      // The placeholder address is not an inbox and must never be shown.
+      expect(data.user.email).toBeNull();
+    });
+
+    it('still looks up by email when the identifier has an @', async () => {
+      let userLookupSql = null;
+      const mockDB = createMockDB((sql) => {
+        if (sql.includes('login_attempts') && sql.includes('COUNT')) return { count: 0 };
+        if (sql.includes('users u') && sql.includes('organizations o')) {
+          userLookupSql = sql;
+          return null;
+        }
+        return null;
+      });
+
+      const app = createTestApp(mockDB);
+
+      await makeRequest(app, 'POST', '/api/auth/login', {
+        email: 'sarah@school.sch.uk',
+        password: 'pw',
+      });
+
+      expect(userLookupSql).toContain('u.email = ?');
+    });
+
+    it('refuses the placeholder address as a credential', async () => {
+      // It exists only so users.email can stay NOT NULL. The username is the
+      // one way into a manual account.
+      const mockDB = createMockDB((sql) => {
+        if (sql.includes('login_attempts') && sql.includes('COUNT')) return { count: 0 };
+        return null;
+      });
+      const app = createTestApp(mockDB);
+
+      const response = await makeRequest(app, 'POST', '/api/auth/login', {
+        email: 'sarah.jones@no-email.invalid',
+        password: 'temp-password',
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Invalid credentials');
+      // Refused before any user lookup runs.
+      expect(mockDB._calls.some((sql) => sql.includes('organizations o'))).toBe(false);
     });
 
     it('should return 400 when email or password is missing', async () => {
@@ -515,7 +601,37 @@ describe('Auth API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Email and password required');
+      expect(data.error).toBe('Email or username, and password, are required');
+    });
+  });
+
+  describe('POST /api/auth/forgot-password - manual accounts', () => {
+    it('issues no reset token for a placeholder address', async () => {
+      // There is no inbox behind it, so a token would be unreachable. The
+      // recovery path for these accounts is an admin reset.
+      const mockDB = createMockDB((sql) => {
+        if (sql.includes('SELECT id, email, name FROM users')) {
+          return {
+            id: 'user-1',
+            email: 'sarah.jones@no-email.invalid',
+            name: 'Sarah Jones',
+          };
+        }
+        return null;
+      });
+      const app = createTestApp(mockDB);
+
+      const response = await makeRequest(app, 'POST', '/api/auth/forgot-password', {
+        email: 'sarah.jones@no-email.invalid',
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Same answer as an unknown address — no enumeration signal.
+      expect(data.message).toBe('If the email exists, a reset link will be sent');
+      expect(mockDB._calls.some((sql) => sql.includes('INSERT INTO password_reset_tokens'))).toBe(
+        false
+      );
     });
   });
 

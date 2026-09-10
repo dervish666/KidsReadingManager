@@ -49,7 +49,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      expect(screen.getByLabelText('Email')).toBeInTheDocument();
+      expect(screen.getByLabelText('Email or username')).toBeInTheDocument();
       expect(screen.getByLabelText('Password')).toBeInTheDocument();
       expect(screen.getByText('Sign in to your account.')).toBeInTheDocument();
     });
@@ -77,7 +77,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const emailInput = screen.getByLabelText('Email');
+      const emailInput = screen.getByLabelText('Email or username');
       const passwordInput = screen.getByLabelText('Password');
 
       await user.type(emailInput, 'test@example.com');
@@ -97,7 +97,7 @@ describe('Login Component', () => {
 
       render(<Login />, { wrapper: createWrapper(context) });
 
-      const emailInput = screen.getByLabelText('Email');
+      const emailInput = screen.getByLabelText('Email or username');
       const passwordInput = screen.getByLabelText('Password');
 
       await user.type(emailInput, 'test@example.com');

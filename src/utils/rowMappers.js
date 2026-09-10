@@ -6,6 +6,7 @@
  */
 
 import { safeJsonParse } from './routeHelpers.js';
+import { isPlaceholderEmail } from './username.js';
 
 // ── Books ────────────────────────────────────────────────────────────────────
 
@@ -128,7 +129,10 @@ export const rowToUser = (row) => {
     id: row.id,
     organizationId: row.organization_id,
     organizationName: row.organization_name,
-    email: row.email,
+    // Manually created accounts carry a placeholder address so the UNIQUE NOT
+    // NULL column has a value. Never surface it — it is not an inbox.
+    email: isPlaceholderEmail(row.email) ? null : row.email,
+    username: row.username || null,
     name: row.name,
     role: row.role,
     isActive: Boolean(row.is_active),

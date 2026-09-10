@@ -1,5 +1,40 @@
 # Changelog
 
+## [3.129.0] - 2026-09-10
+
+Set staff up by hand, with a username instead of an email address.
+
+Getting a school onto Wonde needs someone at the academy to authorise it, which can take weeks. This lets an admin create the accounts themselves in the meantime, and works for any school where staff have no email address of their own.
+
+### Added
+
+- **Staff can sign in with a username.** Add User now asks how the person will sign in: `firstname.lastname` or the old email invitation. The username is worked out from the name you type and can be edited before you save. A second Sarah Jones becomes `sarah.jones2`, because the sign-in box asks for one name and has no way to tell two schools apart.
+- **Classes go on when you create the account**, rather than needing a second visit to the user's details. A teacher can use Tally the moment they first sign in.
+- **The password is shown to you once.** These accounts have no inbox, so there is nowhere to email it. New sign-in details collect in a panel above the user list with copy buttons, so setting up a whole staff room gives you one list to hand out. Closing the panel loses it.
+- **A Reset password button on each user.** For an account with an email address the new password is emailed as before; for a username account it is shown to you, and that is now the recovery route, since a forgotten password can't be emailed to someone who has no email.
+
+### Changed
+
+- **The sign-in box accepts an email address or a username.** Nothing changes for anyone signing in the way they already do, including MyLogin.
+
+## [3.128.0] - 2026-09-08
+
+### Added
+
+- **Click your name in the header for an overview.** The name chip was a label; it now opens a panel showing who is signed in and a glance at your class or classes: pupils, read today, read this week, needs attention, streaks running, and up to five children worth catching up with.
+
+## [3.127.1] - 2026-09-05
+
+### Fixed
+
+- **The Reading News ticker no longer resizes with the headline.** A long headline pushed the class filter and account chips onto a second row, and the next short one put them back.
+
+## [3.127.0] - 2026-09-05
+
+### Changed
+
+- **The AI model picker lists what your provider actually offers**, instead of a hardcoded three. Every list is capped to the provider's cheapest tier, and that cap is enforced when a recommendation runs, not just when you pick.
+
 ## [3.126.2] - 2026-09-01
 
 ### Fixed
@@ -214,7 +249,7 @@ Nothing in this release changes what you see in Tally. It is all behind the scen
 ### Fixed
 
 - **Alert emails about database errors that were never ours to fix.** Tally runs a small check every minute to see whether there is any book-information work waiting. When Cloudflare's database service has a wobble — which it did for 58 minutes straight on 16 July, and briefly on 9 and 10 August — that check is simply the first thing to notice, so it was sending an alert every single minute of the outage. The errors carry Cloudflare's own incident references and were never caused by anything in Tally: the check reads six rows in a fraction of a millisecond, against a database holding fewer than a thousand reading sessions. Short outages are now recorded quietly instead of raising an alarm, while a check that genuinely stops working still reports itself within a couple of hours. Nothing was ever wrong with anyone's data.
-- **Two class goal measures had been drifting since April.** Goals update as reading sessions are logged, and that always worked. But an overnight pass exists to re-check them from scratch, and it was looking up goals under a calendar quarter ("Q3 2026") while every goal is actually filed under a school year ("2025/26"), so it matched nothing and quietly did nothing at all for four months. Sessions, books and readers were unaffected — they are counted as they happen — but *genres explored* and *badges earned* rely on that nightly pass and had fallen behind. It now runs properly, and only looks at classes that actually have goals set.
+- **Two class goal measures had been drifting since April.** Goals update as reading sessions are logged, and that always worked. But an overnight pass exists to re-check them from scratch, and it was looking up goals under a calendar quarter ("Q3 2026") while every goal is actually filed under a school year ("2025/26"), so it matched nothing and quietly did nothing at all for four months. Sessions, books and readers were unaffected — they are counted as they happen — but _genres explored_ and _badges earned_ rely on that nightly pass and had fallen behind. It now runs properly, and only looks at classes that actually have goals set.
 - **Error reports were labelled with the wrong version.** Every report from the server arrived tagged "dev" rather than the release it came from, which meant the tools that translate errors back into readable code locations had nothing to match against — so faults showed up as unreadable machine addresses. The version is now baked into the app itself rather than attached at the moment of publishing, where it was being lost whenever the deploy came from a different route.
 
 ### Changed

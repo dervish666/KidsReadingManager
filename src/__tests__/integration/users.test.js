@@ -33,8 +33,14 @@ const createMockDB = (overrides = {}) => {
     run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }),
   };
 
+  // Record the SQL on the shared chain so tests can answer .first() by which
+  // statement is running, rather than by call order — handlers reorder their
+  // lookups and an index-keyed mock turns that into a phantom failure.
   return {
-    prepare: vi.fn().mockReturnValue(prepareChain),
+    prepare: vi.fn((sql) => {
+      prepareChain._sql = sql;
+      return prepareChain;
+    }),
     batch: vi.fn().mockResolvedValue([{ success: true }]),
     _chain: prepareChain,
     ...overrides,
@@ -268,6 +274,7 @@ describe('Users API Routes', () => {
           organizationId: 'org-456',
           organizationName: 'Test Org',
           email: 'test@example.com',
+          username: null,
           name: 'Test User',
           role: 'teacher',
           isActive: true,
@@ -463,12 +470,10 @@ describe('Users API Routes', () => {
         });
 
         // Mock the chain of queries
-        let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
-          callIndex++;
-          if (callIndex === 1) return Promise.resolve(null); // No existing user
-          if (callIndex === 2) return Promise.resolve({ name: 'Test Org' }); // Organization name
-          return Promise.resolve(null);
+          const sql = mockDB._chain._sql || '';
+          if (sql.includes('FROM organizations')) return Promise.resolve({ name: 'Test Org' });
+          return Promise.resolve(null); // No existing user, no username clash
         });
 
         const response = await makeRequest(app, 'POST', '/api/users', {
@@ -592,11 +597,9 @@ describe('Users API Routes', () => {
           userRole: ROLES.OWNER,
         });
 
-        let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
-          callIndex++;
-          if (callIndex === 1) return Promise.resolve(null); // No existing user
-          if (callIndex === 2) return Promise.resolve({ name: 'Test Org' }); // Organization name
+          const sql = mockDB._chain._sql || '';
+          if (sql.includes('FROM organizations')) return Promise.resolve({ name: 'Test Org' });
           return Promise.resolve(null);
         });
 
@@ -609,6 +612,138 @@ describe('Users API Routes', () => {
 
         expect(response.status).toBe(201);
         expect(data.user.role).toBe('admin');
+      });
+    });
+
+    describe('Manual accounts (username, no email)', () => {
+      // A school that cannot complete a Wonde/MyLogin approval gets its staff
+      // set up by hand, and most of them have no school email address.
+      const manualApp = (extra = {}) => {
+        const { app, mockDB } = createTestApp({
+          userId: 'admin-user',
+          organizationId: 'org-456',
+          userRole: ROLES.ADMIN,
+          ...extra,
+        });
+        mockDB._chain.first.mockImplementation(() => {
+          const sql = mockDB._chain._sql || '';
+          if (sql.includes('FROM organizations')) return Promise.resolve({ name: 'Test Org' });
+          return Promise.resolve(null);
+        });
+        return { app, mockDB };
+      };
+
+      it('derives firstname.lastname when no email is given', async () => {
+        const { app } = manualApp();
+
+        const response = await makeRequest(app, 'POST', '/api/users', {
+          name: 'Sarah Jones',
+          role: 'teacher',
+        });
+        const data = await response.json();
+
+        expect(response.status).toBe(201);
+        expect(data.user.username).toBe('sarah.jones');
+        expect(data.user.email).toBeNull();
+      });
+
+      it('returns the generated password, because there is no inbox to send it to', async () => {
+        const { app } = manualApp();
+
+        const response = await makeRequest(app, 'POST', '/api/users', {
+          name: 'Sarah Jones',
+          role: 'teacher',
+        });
+        const data = await response.json();
+
+        expect(typeof data.temporaryPassword).toBe('string');
+        expect(data.temporaryPassword.length).toBeGreaterThanOrEqual(8);
+        expect(data.emailSent).toBe(false);
+      });
+
+      it('never returns a password when an email address will receive one', async () => {
+        const { app } = manualApp();
+
+        const response = await makeRequest(app, 'POST', '/api/users', {
+          name: 'Sarah Jones',
+          email: 'sarah@school.sch.uk',
+          role: 'teacher',
+        });
+        const data = await response.json();
+
+        expect(response.status).toBe(201);
+        expect(data.temporaryPassword).toBeUndefined();
+        expect(data.user.username).toBeNull();
+      });
+
+      it('stores a placeholder address so the UNIQUE NOT NULL column has a value', async () => {
+        const { app, mockDB } = manualApp();
+
+        await makeRequest(app, 'POST', '/api/users', { name: 'Sarah Jones', role: 'teacher' });
+
+        const insert = mockDB.prepare.mock.calls.find(([sql]) => sql.includes('INSERT INTO users'));
+        expect(insert).toBeDefined();
+        const bound = mockDB._chain.bind.mock.calls.flat();
+        expect(bound).toContain('sarah.jones@no-email.invalid');
+        expect(bound).toContain('sarah.jones');
+      });
+
+      it('rejects a name that cannot become a username, rather than inventing one', async () => {
+        const { app } = manualApp();
+
+        const response = await makeRequest(app, 'POST', '/api/users', {
+          name: '李雷',
+          role: 'teacher',
+        });
+        const data = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(data.error).toMatch(/username/i);
+      });
+
+      it('rejects an email at the placeholder domain', async () => {
+        const { app } = manualApp();
+
+        const response = await makeRequest(app, 'POST', '/api/users', {
+          name: 'Sarah Jones',
+          email: 'sarah.jones@no-email.invalid',
+          role: 'teacher',
+        });
+
+        expect(response.status).toBe(400);
+      });
+
+      it('assigns classes in the same request', async () => {
+        const { app, mockDB } = manualApp();
+        mockDB._chain.all.mockResolvedValue({ results: [{ id: 'class-1' }, { id: 'class-2' }] });
+
+        const response = await makeRequest(app, 'POST', '/api/users', {
+          name: 'Sarah Jones',
+          role: 'teacher',
+          classIds: ['class-1', 'class-2'],
+        });
+        const data = await response.json();
+
+        expect(response.status).toBe(201);
+        expect(data.user.classIds).toEqual(['class-1', 'class-2']);
+        const batched = mockDB.batch.mock.calls[0][0];
+        expect(batched).toHaveLength(3); // the user, plus one assignment each
+      });
+
+      it('refuses a class from another organization', async () => {
+        const { app, mockDB } = manualApp();
+        mockDB._chain.all.mockResolvedValue({ results: [] });
+
+        const response = await makeRequest(app, 'POST', '/api/users', {
+          name: 'Sarah Jones',
+          role: 'teacher',
+          classIds: ['class-from-another-school'],
+        });
+        const data = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(data.error).toMatch(/Invalid class IDs/);
+        expect(mockDB.batch).not.toHaveBeenCalled();
       });
     });
 
@@ -641,11 +776,9 @@ describe('Users API Routes', () => {
           userRole: ROLES.OWNER,
         });
 
-        let callIndex = 0;
         mockDB._chain.first.mockImplementation(() => {
-          callIndex++;
-          if (callIndex === 1) return Promise.resolve(null); // No existing user
-          if (callIndex === 2) return Promise.resolve({ name: 'Other Org' }); // Organization name
+          const sql = mockDB._chain._sql || '';
+          if (sql.includes('FROM organizations')) return Promise.resolve({ name: 'Other Org' });
           return Promise.resolve(null);
         });
 
