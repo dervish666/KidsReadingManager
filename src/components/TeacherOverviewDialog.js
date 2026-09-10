@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import SchoolOutlined from '@mui/icons-material/SchoolOutlined';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined';
@@ -21,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
 import { resolveTeacherClasses, summariseClass } from '../utils/classOverview';
+import ProfileEditor from './ProfileEditor';
 
 const ROLE_LABEL = {
   owner: 'Owner',
@@ -34,6 +36,9 @@ const PROVIDER_LABEL = {
   local: 'Email and password',
   demo: 'Demo account',
 };
+
+// A manually created account signs in with a username, not an email address.
+const localProviderLabel = (u) => (u?.username ? 'Username and password' : PROVIDER_LABEL.local);
 
 function initials(name) {
   return String(name || '')
@@ -165,9 +170,10 @@ function ClassCard({ cls, summary, onView }) {
 }
 
 /**
- * Opened from the signed-in name chip in the header: who is signed in, and a
- * glance at the class or classes they teach. Reads DataContext only, so it
- * costs no request and is always in step with the rest of the app.
+ * Opened from the signed-in name chip in the header: who is signed in, what
+ * they can change about their own account, and a glance at the class or
+ * classes they teach. The class overview reads DataContext only, so opening
+ * the dialog costs no request and is always in step with the rest of the app.
  *
  * Class resolution is in utils/classOverview.js. When nothing links the user
  * to a class (an admin, an owner, a teacher whose MIS link hasn't synced yet)
@@ -248,7 +254,9 @@ export default function TeacherOverviewDialog({ open, onClose }) {
 
       <DialogContent sx={{ pt: 0 }}>
         <Stack spacing={0.75} sx={{ mb: 2 }}>
-          {user?.email && !user.email.endsWith('@no-email.invalid') && (
+          {/* The server already maps a placeholder address to null, so an
+              address shown here is a real one. */}
+          {user?.email && (
             <Stack direction="row" spacing={1} alignItems="center">
               <MailOutlineIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
               <Typography variant="body2" noWrap>
@@ -256,14 +264,31 @@ export default function TeacherOverviewDialog({ open, onClose }) {
               </Typography>
             </Stack>
           )}
+          {user?.username && (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <BadgeOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }} noWrap>
+                {user.username}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                you sign in with this
+              </Typography>
+            </Stack>
+          )}
           <Stack direction="row" spacing={1} alignItems="center">
             <SchoolOutlined sx={{ fontSize: 18, color: 'text.secondary' }} />
             <Typography variant="body2" color="text.secondary">
-              {PROVIDER_LABEL[user?.authProvider] || 'Signed in'}
+              {user?.authProvider && user.authProvider !== 'local'
+                ? PROVIDER_LABEL[user.authProvider] || 'Signed in'
+                : localProviderLabel(user)}
               {lastLogin ? ` · last sign-in ${lastLogin}` : ''}
             </Typography>
           </Stack>
         </Stack>
+
+        <Divider sx={{ mb: 2 }} />
+
+        <ProfileEditor />
 
         <Divider sx={{ mb: 2 }} />
 

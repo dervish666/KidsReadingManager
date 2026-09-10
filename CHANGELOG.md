@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.130.0] - 2026-09-10
+
+Staff can now change their own name and password from the app.
+
+### Added
+
+- **"Your account" in the profile panel** — click your name in the top right. Change the name shown on your account, or set a new password, without asking an administrator. This matters most for staff who sign in with a username: they are handed a password by whoever set them up, and there is no email address to send a reset to.
+- **The username you sign in with is shown in the panel**, so nobody has to remember where they wrote it down.
+
+### Changed
+
+- **Changing your password no longer signs you out.** It still signs you out on every other device, which is the point of changing it, but you stay signed in where you made the change. Before this you would have been signed out a few minutes later with no explanation.
+- **Name and password are the only things you can change about yourself.** Your email address and username are how you sign in, so an administrator changes those. If you sign in through your school, everything comes from there and the panel says so.
+
+### Fixed
+
+- **A manually created account's internal placeholder address could appear after a session refresh.** It was hidden when you signed in but not when your session renewed itself. It is now hidden everywhere.
+
 ## [3.129.0] - 2026-09-10
 
 Set staff up by hand, with a username instead of an email address.

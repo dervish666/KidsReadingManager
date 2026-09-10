@@ -322,6 +322,16 @@ For a school with no MIS connection, an admin creates staff by hand in User Mana
 - **This is the one place a password is returned in an API response**, and the condition is narrow: no real email, so no inbox to send it to. Both `POST /api/users` and `POST /api/users/:id/reset-password` return `temporaryPassword` only in that case. Withholding it would mean nobody could ever sign in. The UI holds those credentials in a dismissible panel above the user table (`newCredentials` in `UserManagement.js`) — it is the only copy, and deliberately not persisted.
 - **Password recovery for these accounts is the admin, not email.** `/api/auth/forgot-password` looks up by email and a placeholder can never receive one. The Reset password button on the user detail dialog is the recovery path, and the forgot-password view says so.
 - All of it lives in `src/utils/username.js`, shared by the Worker and the frontend (it is pure except `allocateUsername`). The Add User dialog derives the username from the typed name and lets the admin override it.
+- **Every endpoint that returns a user must mask the placeholder.** `/login`, `/me` and `/refresh` all do. `/refresh` was missed in v3.129.0 and fixed in v3.130.0 — it is a separate response builder from `/login`, reading a different query, so "the login response masks it" does not cover it. `src/__tests__/integration/auth.test.js` now asserts all three.
+
+### Self-service profile editing
+
+`src/components/ProfileEditor.js`, rendered inside `TeacherOverviewDialog` (the header name chip). A teacher can change their own **name** and **password** without an administrator — which manual accounts need, since they are handed a generated password and have no email to reset through.
+
+- **`PUT /api/auth/password` re-issues the caller's session.** It revokes every refresh token, which necessarily includes the caller's own, so before v3.130.0 the person who changed their password was signed out within 15 minutes with no explanation. It now mints a fresh access token and refresh cookie for that device only; every other device stays revoked. If the re-issue fails it still reports success with `reauthRequired: true` — the password genuinely changed, and reporting failure would send them back to the old one.
+- **Only name and password are self-editable, by design.** Email and username are sign-in identifiers (a username is globally unique; an email is the recovery channel), so they stay an admin's job — `PUT /api/users/:id` already gates the username edit on `isAdmin` and rejects everything else from a non-admin with "You can only update your own name".
+- **The editor renders nothing for MyLogin accounts** beyond an explanation: `routes/mylogin.js` overwrites `name` on every sign-in, so an edit would silently revert, and there is no Tally password to change. It renders nothing at all for the shared demo account.
+- `updateStoredUser()` in `AuthContext` merges the change into the cached user and localStorage. The JWT keeps the old name until it next refreshes, which is harmless — nothing authorises on the name — and `/refresh` re-reads the row, so it comes back current rather than stale.
 
 ### Wonde + MyLogin Integration
 

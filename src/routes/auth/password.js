@@ -3,13 +3,23 @@
  *
  *   POST /forgot-password  — request a reset email (enumeration-safe)
  *   POST /reset-password   — set a new password from a reset token
- *   PUT  /password         — change password (requires authentication)
+ *   PUT  /password         — change password (requires authentication), and
+ *                            re-issue this device's session so the person who
+ *                            just changed it is not the one signed out
  */
 
 import { Hono } from 'hono';
 import { generateId } from '../../utils/helpers.js';
 import { validatePassword } from '../../utils/validation.js';
-import { hashPassword, verifyPassword, hashToken } from '../../utils/crypto.js';
+import {
+  hashPassword,
+  verifyPassword,
+  hashToken,
+  createAccessToken,
+  createRefreshToken,
+  createJWTPayload,
+  buildRefreshCookie,
+} from '../../utils/crypto.js';
 import { sendPasswordResetEmail } from '../../utils/email.js';
 import { isPlaceholderEmail } from '../../utils/username.js';
 import { requireDB as getDB } from '../../utils/routeHelpers.js';
@@ -240,7 +250,9 @@ passwordRouter.put('/password', async (c) => {
     // Hash new password
     const newPasswordHash = await hashPassword(newPassword);
 
-    // Update password and revoke all existing refresh tokens (force re-login on other devices)
+    // Update password and revoke every existing refresh token, so a session
+    // opened with the old password (a shared classroom laptop, a lost phone)
+    // cannot outlive it.
     await db.batch([
       db
         .prepare('UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?')
@@ -254,7 +266,76 @@ passwordRouter.put('/password', async (c) => {
         .bind(user.sub),
     ]);
 
-    return c.json({ message: 'Password changed successfully' });
+    // That revocation includes the caller's own token, so without this the
+    // person who just changed their password is signed out within 15 minutes
+    // and cannot say why. Issue this device a fresh session; every other
+    // device stays revoked. A failure here is not a failed password change —
+    // say so, and let them sign in again with the new password.
+    const jwtSecret = c.env.JWT_SECRET;
+    try {
+      if (!jwtSecret) throw new Error('JWT_SECRET not configured');
+
+      const fullUser = await db
+        .prepare(
+          `SELECT u.id, u.email, u.username, u.name, u.role, u.auth_provider, u.organization_id,
+                  o.slug as org_slug
+           FROM users u
+           INNER JOIN organizations o ON u.organization_id = o.id
+           WHERE u.id = ? AND u.is_active = 1 AND o.is_active = 1`
+        )
+        .bind(user.sub)
+        .first();
+
+      if (!fullUser) throw new Error('User not found after password change');
+
+      let assignedClassIds = [];
+      try {
+        const assignments = await db
+          .prepare('SELECT class_id FROM class_assignments WHERE user_id = ?')
+          .bind(user.sub)
+          .all();
+        assignedClassIds = (assignments.results || []).map((r) => r.class_id);
+      } catch {
+        /* class_assignments may be empty or missing; the token is fine without it */
+      }
+
+      const payload = createJWTPayload(
+        {
+          id: fullUser.id,
+          email: fullUser.email,
+          name: fullUser.name,
+          role: fullUser.role,
+          authProvider: fullUser.auth_provider,
+          assignedClassIds,
+        },
+        { id: fullUser.organization_id, slug: fullUser.org_slug }
+      );
+
+      const accessToken = await createAccessToken(payload, jwtSecret);
+      const refreshTokenData = await createRefreshToken(fullUser.id, jwtSecret);
+
+      await db
+        .prepare(
+          `INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)`
+        )
+        .bind(generateId(), fullUser.id, refreshTokenData.hash, refreshTokenData.expiresAt)
+        .run();
+
+      const isProduction = c.env.ENVIRONMENT !== 'development';
+      c.header('Set-Cookie', buildRefreshCookie(refreshTokenData.token, isProduction));
+
+      return c.json({
+        message: 'Password changed successfully',
+        accessToken,
+        signedOutElsewhere: true,
+      });
+    } catch (reissueError) {
+      console.error('Password changed but session re-issue failed:', reissueError);
+      return c.json({
+        message: 'Password changed successfully. Please sign in again with your new password.',
+        reauthRequired: true,
+      });
+    }
   } catch (error) {
     console.error('Change password error:', error);
     return c.json({ error: 'Password change failed' }, 500);

@@ -242,7 +242,7 @@ sessionRouter.post('/refresh', async (c) => {
     const storedToken = await db
       .prepare(
         `
-      SELECT rt.*, u.email, u.name, u.role, u.auth_provider, u.is_active as user_active,
+      SELECT rt.*, u.email, u.username, u.name, u.role, u.auth_provider, u.is_active as user_active,
              o.id as org_id, o.name as org_name, o.slug as org_slug, o.is_active as org_active
       FROM refresh_tokens rt
       INNER JOIN users u ON rt.user_id = u.id
@@ -357,7 +357,10 @@ sessionRouter.post('/refresh', async (c) => {
       accessToken,
       user: {
         id: storedToken.user_id,
-        email: storedToken.email,
+        // Same masking as /login and /me — a placeholder address is not an
+        // inbox and must not reach a caller, whichever endpoint answers.
+        email: isPlaceholderEmail(storedToken.email) ? null : storedToken.email,
+        username: storedToken.username || null,
         name: storedToken.name,
         role: storedToken.role,
         authProvider: storedToken.auth_provider || 'local',

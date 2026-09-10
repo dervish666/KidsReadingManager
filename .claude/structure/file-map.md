@@ -180,6 +180,7 @@ src/components/legal/LegalHub.js - /legal index hub linking all legal & complian
 src/components/legal/LegalDocPage.js - Renders a public/legal/\*.md document at /legal/<slug> (react-markdown)
 src/components/BookRecommendations.js - AI recommendations with library search
 src/components/SupportModal.js - Support contact form modal (subject, message, email notification)
+src/components/ProfileEditor.js - "Your account" block in the profile dialog: change your own name and password; hidden for MyLogin and demo accounts
 src/components/TeacherOverviewDialog.js - Opened from the header name chip: signed-in user details plus a glance at their class(es) — pupils, read today/this week, needs attention, not read, streaks, who to catch up with. DataContext only, no request
 src/components/SupportTicketManager.js - Owner-only support ticket list with detail panel, status management, internal notes
 src/components/PlatformSettings.js - Owner-only platform AI key management (per-provider keys, active provider selection)

@@ -635,6 +635,177 @@ describe('Auth API Routes', () => {
     });
   });
 
+  describe('POST /api/auth/refresh - manual accounts', () => {
+    it('masks the placeholder address and returns the username', async () => {
+      // /login and /me both mask it; a caller must not get a different answer
+      // just because the token happened to expire.
+      const mockDB = createMockDB((sql) => {
+        if (sql.includes('FROM refresh_tokens rt') && sql.includes('INNER JOIN users u')) {
+          return {
+            user_id: 'user-1',
+            email: 'ellie.ward@no-email.invalid',
+            username: 'ellie.ward',
+            name: 'Ellie Ward',
+            role: 'teacher',
+            auth_provider: 'local',
+            user_active: 1,
+            org_id: 'org-1',
+            org_name: 'Test School',
+            org_slug: 'test-school',
+            org_active: 1,
+          };
+        }
+        return null;
+      });
+      const app = createTestApp(mockDB);
+
+      const response = await makeRequest(
+        app,
+        'POST',
+        '/api/auth/refresh',
+        {},
+        { Cookie: 'refresh_token=whatever' }
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.user.email).toBeNull();
+      expect(data.user.username).toBe('ellie.ward');
+    });
+  });
+
+  describe('PUT /api/auth/password - change password', () => {
+    // The route reads c.get('user'), which the real auth middleware sets and
+    // this file's createTestApp does not.
+    const appAsUser = (mockDB, sub = 'user-1') => {
+      const app = new Hono();
+      app.use('*', async (c, next) => {
+        c.env = {
+          JWT_SECRET: TEST_SECRET,
+          READING_MANAGER_DB: mockDB,
+          ENVIRONMENT: 'development',
+        };
+        c.set('user', { sub });
+        await next();
+      });
+      app.route('/api/auth', authRouter);
+      return app;
+    };
+
+    const dbWithUser = (overrides = {}) =>
+      createMockDB((sql) => {
+        if (sql.includes('SELECT password_hash FROM users')) {
+          return { password_hash: 'mocked-salt:mocked-hash' };
+        }
+        if (sql.includes('u.auth_provider') && sql.includes('org_slug')) {
+          return {
+            id: 'user-1',
+            email: 'sarah@school.sch.uk',
+            username: null,
+            name: 'Sarah Jones',
+            role: 'teacher',
+            auth_provider: 'local',
+            organization_id: 'org-1',
+            org_slug: 'test-school',
+            ...overrides,
+          };
+        }
+        return null;
+      });
+
+    it('hands the caller a fresh session, because the revoke includes their own token', async () => {
+      const mockDB = dbWithUser();
+      const app = appAsUser(mockDB);
+      verifyPassword.mockResolvedValueOnce({ valid: true, needsRehash: false });
+
+      const response = await makeRequest(app, 'PUT', '/api/auth/password', {
+        currentPassword: 'OldPass123',
+        newPassword: 'NewPass456',
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.accessToken).toBe('mocked-access-token');
+      expect(data.signedOutElsewhere).toBe(true);
+      // A replacement refresh token is stored and set as a cookie.
+      expect(mockDB._calls.some((sql) => sql.includes('INSERT INTO refresh_tokens'))).toBe(true);
+      expect(response.headers.get('set-cookie')).toContain('refresh_token=');
+    });
+
+    it('revokes the old sessions before issuing the new one', async () => {
+      const mockDB = dbWithUser();
+      const app = appAsUser(mockDB);
+      verifyPassword.mockResolvedValueOnce({ valid: true, needsRehash: false });
+
+      await makeRequest(app, 'PUT', '/api/auth/password', {
+        currentPassword: 'OldPass123',
+        newPassword: 'NewPass456',
+      });
+
+      const revokeAt = mockDB._calls.findIndex((sql) =>
+        sql.includes('UPDATE refresh_tokens SET revoked_at')
+      );
+      const insertAt = mockDB._calls.findIndex((sql) => sql.includes('INSERT INTO refresh_tokens'));
+      expect(revokeAt).toBeGreaterThanOrEqual(0);
+      expect(insertAt).toBeGreaterThan(revokeAt);
+    });
+
+    it('still reports success when the re-issue fails, and asks them to sign in again', async () => {
+      // The password really did change — reporting failure would be a lie that
+      // sends them back to the old one.
+      const mockDB = createMockDB((sql) => {
+        if (sql.includes('SELECT password_hash FROM users')) {
+          return { password_hash: 'mocked-salt:mocked-hash' };
+        }
+        return null; // the re-issue lookup finds nothing
+      });
+      const app = appAsUser(mockDB);
+      verifyPassword.mockResolvedValueOnce({ valid: true, needsRehash: false });
+
+      const response = await makeRequest(app, 'PUT', '/api/auth/password', {
+        currentPassword: 'OldPass123',
+        newPassword: 'NewPass456',
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.reauthRequired).toBe(true);
+      expect(data.accessToken).toBeUndefined();
+      expect(data.message).toMatch(/sign in again/i);
+    });
+
+    it('rejects a wrong current password', async () => {
+      const mockDB = dbWithUser();
+      const app = appAsUser(mockDB);
+      verifyPassword.mockResolvedValueOnce({ valid: false, needsRehash: false });
+
+      const response = await makeRequest(app, 'PUT', '/api/auth/password', {
+        currentPassword: 'WrongPass1',
+        newPassword: 'NewPass456',
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Current password is incorrect');
+      expect(mockDB._calls.some((sql) => sql.includes('INSERT INTO refresh_tokens'))).toBe(false);
+    });
+
+    it('rejects a weak new password before touching the database', async () => {
+      const mockDB = dbWithUser();
+      const app = appAsUser(mockDB);
+
+      const response = await makeRequest(app, 'PUT', '/api/auth/password', {
+        currentPassword: 'OldPass123',
+        newPassword: 'short',
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockDB._calls.some((sql) => sql.includes('UPDATE users SET password_hash'))).toBe(
+        false
+      );
+    });
+  });
+
   // ===========================================================================
   // 3. Token Refresh: Rotation and Old Token Revocation
   // ===========================================================================

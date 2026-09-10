@@ -534,6 +534,58 @@ export const AuthProvider = ({ children }) => {
     return userWithOrg;
   }, []);
 
+  // Merge a change the user just made to their own profile into the cached
+  // user, so the header chip and this dialog agree with the server without a
+  // reload. The JWT still carries the old name until it next refreshes, which
+  // is fine — nothing authorises on the name.
+  const updateStoredUser = useCallback((patch) => {
+    if (!patch || typeof patch !== 'object') return;
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
+        }
+      } catch {
+        /* storage failure is non-critical */
+      }
+      return next;
+    });
+  }, []);
+
+  // Change your own password. The server revokes every session, including this
+  // one, then hands back a fresh access token for this device — swap it in or
+  // the person who just changed their password gets signed out within fifteen
+  // minutes with no explanation.
+  const changePassword = useCallback(
+    async (currentPassword, newPassword) => {
+      const response = await fetchWithAuth(`${API_URL}/auth/password`, {
+        method: 'PUT',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not change your password');
+      }
+
+      if (data.accessToken) {
+        try {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
+          }
+        } catch {
+          /* storage failure is non-critical */
+        }
+        setAuthToken(data.accessToken);
+      }
+
+      return data;
+    },
+    [fetchWithAuth]
+  );
+
   // Demo login: frontend POSTs /api/auth/demo and hands the response here.
   // Exposing this helper means LandingPage doesn't need to hand-roll the
   // localStorage writes (they were previously duplicated and would drift).
@@ -808,6 +860,8 @@ export const AuthProvider = ({ children }) => {
       loginWithDemo,
       forgotPassword,
       resetPassword,
+      updateStoredUser,
+      changePassword,
       logout,
     }),
     [
@@ -835,6 +889,8 @@ export const AuthProvider = ({ children }) => {
       loginWithDemo,
       forgotPassword,
       resetPassword,
+      updateStoredUser,
+      changePassword,
       logout,
     ]
   );
