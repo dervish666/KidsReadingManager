@@ -135,8 +135,8 @@ function ClassCard({ cls, summary, onView }) {
 
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Stat value={summary.pupils} label="pupils" />
-        <Stat value={summary.readToday} label="read today" tone="good" />
-        <Stat value={summary.readThisWeek} label="read this week" tone="good" />
+        <Stat value={summary.readToday} label="read today" />
+        <Stat value={summary.readThisWeek} label="read this week" />
         <Stat value={summary.status.attention} label="needs attention" tone="warn" />
         <Stat value={notRead} label="not read" tone="bad" />
       </Stack>
@@ -168,7 +168,7 @@ function ClassCard({ cls, summary, onView }) {
           <Typography variant="body2" sx={{ mt: 0.25 }}>
             {summary.catchUp
               .map((p) => (p.days === null ? `${p.name} (never)` : `${p.name} (${p.days}d)`))
-              .join(' · ')}
+              .join(', ')}
             {summary.catchUpTotal > summary.catchUp.length
               ? ` and ${summary.catchUpTotal - summary.catchUp.length} more`
               : ''}

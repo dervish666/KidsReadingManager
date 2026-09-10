@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.132.0] - 2026-09-10
+
+A tidy-up pass across the app so every page reads the way the new Achievements page does. Nothing moved; things that said the same thing twice, or wore a colour for no reason, stopped.
+
+### Changed
+
+- **Streaks are a flat flame chip**, not a fire emoji on an orange gradient. Same accent everywhere: the Students table, Stats streak leaders, and the Streaks tile, whose three circles are now one tint.
+- **Stats summary tiles use one number colour.** Students, Sessions, Average and Today no longer each pick their own.
+- **Students table** header is cream with sage text instead of a solid dark band, and the session count now appears once, in its own column, rather than also after every name.
+- **Priority Reading List** has a small "Show 8 students" select where the slider was.
+- **Needs Attention** shows initials and "159 days ago" per pupil instead of a repeated person icon and a "Needs Reading" chip on every row.
+- **Reading Frequency** keeps the chart and drops the list underneath that repeated it pupil for pupil.
+- **Days Since Last Reading** is a status dot and a figure per pupil. The old bar grew longer the longer a child went unread, which drew the eye to the wrong thing.
+- **Home Reading register totals** keep colour only on Read and Not Entered; the other counts are plain.
+- **Profile panel** counts are plain except attention and not-read, and the catch-up list uses commas.
+- **Header ticker** is hidden below tablet-landscape width rather than squashed to an icon and a chevron, and its live messages no longer start with a medal emoji beside the book icon.
+
 ## [3.131.1] - 2026-09-10
 
 ### Fixed

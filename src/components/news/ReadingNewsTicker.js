@@ -7,8 +7,12 @@ import { countdownLabel, shortDate } from './newsFormat';
 const ROTATE_MS = 6000;
 
 /** Headlines to rotate: live celebration events first, then news, then diary dates. */
+// Live messages arrive as "🏅 Maisie earned…" for other surfaces; the ticker
+// already leads with an icon, so the emoji is stripped here.
+const stripLeadingEmoji = (s) => (s || '').replace(/^[^\p{L}\p{N}]+/u, '');
+
 function tickerLines(data, liveEvents) {
-  const lines = (liveEvents || []).map((e) => e.message).filter(Boolean);
+  const lines = (liveEvents || []).map((e) => stripLeadingEmoji(e.message)).filter(Boolean);
   if (!data) return lines;
   lines.push(...(data.items || []).map((i) => i.headline).filter(Boolean));
   for (const e of data.events || []) {

@@ -174,13 +174,13 @@ describe('StudentTable Component', () => {
       const students = createTestStudents();
       render(<StudentTable students={students} />, { wrapper: createWrapper(context) });
 
-      // Session counts appear in parentheses next to student names and in Sessions column
+      // The count lives in the Sessions column only (v3.132.0 dropped the
+      // "(3)" after the name, which repeated the same number twice per row).
       // Alice: 3, Bob: 1, Charlie: 0, Diana: 2
-      // Check for these counts in the rendered output
-      expect(screen.getByText(/Alice Anderson \(3\)/)).toBeInTheDocument();
-      expect(screen.getByText(/Bob Brown \(1\)/)).toBeInTheDocument();
-      expect(screen.getByText(/Charlie Chen \(0\)/)).toBeInTheDocument();
-      expect(screen.getByText(/Diana Davis \(2\)/)).toBeInTheDocument();
+      const rows = screen.getAllByRole('row').slice(1);
+      const counts = rows.map((row) => within(row).getAllByText(/^\d+$/).pop().textContent);
+      expect(counts).toEqual(['3', '1', '0', '2']);
+      expect(screen.queryByText(/Alice Anderson \(3\)/)).not.toBeInTheDocument();
     });
 
     it('should display class names correctly', () => {

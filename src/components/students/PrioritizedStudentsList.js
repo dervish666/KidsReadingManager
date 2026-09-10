@@ -5,7 +5,8 @@ import {
   Grid,
   Card,
   CardContent,
-  Slider,
+  Select,
+  MenuItem,
   Chip,
   Paper,
   Collapse,
@@ -332,35 +333,26 @@ const PrioritizedStudentsList = ({ defaultCount = 8, filterClassId = 'all' }) =>
         </IconButton>
       </Box>
       <Collapse in={expanded}>
-        <Box sx={{ mb: 2, px: 1 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
-            Number of students to display: {count}
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+            Show
           </Typography>
-          <Box sx={{ px: 1, width: '100%' }}>
-            <Slider
-              value={count}
-              onChange={handleCountChange}
-              min={1}
-              max={15}
-              step={1}
-              marks={[
-                { value: 1, label: '1' },
-                { value: 8, label: '8' },
-                { value: 15, label: '15' },
-              ]}
-              valueLabelDisplay="auto"
-              sx={{
-                width: '100%',
-                color: 'primary.main',
-                '& .MuiSlider-thumb': {
-                  boxShadow: '0 4px 8px rgba(107, 142, 107, 0.4)',
-                },
-                '& .MuiSlider-rail': {
-                  opacity: 0.3,
-                },
-              }}
-            />
-          </Box>
+          <Select
+            value={count}
+            onChange={(e) => handleCountChange(e, Number(e.target.value))}
+            size="small"
+            aria-label="Number of students to display"
+            sx={{ minWidth: 72, borderRadius: 2, fontWeight: 600 }}
+          >
+            {[3, 5, 8, 10, 12, 15].map((n) => (
+              <MenuItem key={n} value={n}>
+                {n}
+              </MenuItem>
+            ))}
+          </Select>
+          <Typography variant="body2" color="text.secondary">
+            students
+          </Typography>
         </Box>
 
         <Grid container spacing={2}>

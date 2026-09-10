@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Typography, Paper, Tooltip, LinearProgress, Button } from '@mui/material';
+import { Box, Typography, Paper, Button } from '@mui/material';
 import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import { useTheme } from '@mui/material/styles';
@@ -55,12 +55,6 @@ const DaysSinceReadingChart = () => {
   const [showAll, setShowAll] = useState(false);
   const displayStudents = showAll ? studentData : studentData.slice(0, 30);
 
-  // Find the maximum days for scaling the bars
-  const maxDays = Math.max(
-    ...studentData.map((s) => s.daysSinceReading || 0),
-    21 // Minimum scale (3 weeks)
-  );
-
   // Get color based on days
   const getBarColor = (days) => {
     if (days === null) return theme.palette.error.main; // Never read
@@ -90,50 +84,49 @@ const DaysSinceReadingChart = () => {
       ) : (
         <Box sx={{ mt: 3 }}>
           {displayStudents.map((student) => (
-            <Box key={student.id} sx={{ mb: 2 }}>
+            <Box
+              key={student.id}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                py: 1,
+                borderBottom: '1px solid rgba(139, 115, 85, 0.12)',
+                '&:last-of-type': { borderBottom: 'none' },
+              }}
+            >
               <Box
+                aria-hidden="true"
                 sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  mb: 0.5,
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  gap: 1,
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  bgcolor: getBarColor(student.daysSinceReading),
+                  flexShrink: 0,
+                }}
+              />
+              <Typography variant="body2" sx={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+                {student.name}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ whiteSpace: 'nowrap', display: { xs: 'none', sm: 'block' } }}
+              >
+                {student.totalSessions} {student.totalSessions === 1 ? 'session' : 'sessions'}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  whiteSpace: 'nowrap',
+                  fontWeight: 600,
+                  color: getBarColor(student.daysSinceReading),
+                  minWidth: 92,
+                  textAlign: 'right',
                 }}
               >
-                <Typography
-                  variant="body2"
-                  sx={{ maxWidth: { xs: '100%', sm: '60%' }, wordBreak: 'break-word' }}
-                >
-                  {student.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-                  {getDaysLabel(student.daysSinceReading)}
-                </Typography>
-              </Box>
-              <Tooltip
-                title={`${student.name}: ${getDaysLabel(student.daysSinceReading)} | ${student.totalSessions} total sessions`}
-                placement="top"
-              >
-                <Box sx={{ mt: { xs: 1, sm: 0 } }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={
-                      student.daysSinceReading !== null
-                        ? (student.daysSinceReading / maxDays) * 100
-                        : 100
-                    }
-                    sx={{
-                      height: { xs: 8, sm: 10 },
-                      borderRadius: 6,
-                      bgcolor: 'rgba(0, 0, 0, 0.06)',
-                      '& .MuiLinearProgress-bar': {
-                        bgcolor: getBarColor(student.daysSinceReading),
-                        borderRadius: 6,
-                      },
-                    }}
-                  />
-                </Box>
-              </Tooltip>
+                {getDaysLabel(student.daysSinceReading)}
+              </Typography>
             </Box>
           ))}
 

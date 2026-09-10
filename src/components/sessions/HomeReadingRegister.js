@@ -948,8 +948,8 @@ const HomeReadingRegister = () => {
           size="small"
           icon={<CheckIcon />}
         />
-        <Chip label={`${registerTotals.multipleSessions} Multiple`} color="primary" size="small" />
-        <Chip label={`${registerTotals.absent} Absent`} color="warning" size="small" />
+        <Chip label={`${registerTotals.multipleSessions} Multiple`} size="small" />
+        <Chip label={`${registerTotals.absent} Absent`} size="small" />
         <Chip label={`${registerTotals.noRecord} No Record`} size="small" />
         <Chip
           label={`${registerTotals.notEntered} Not Entered`}
@@ -959,7 +959,6 @@ const HomeReadingRegister = () => {
         />
         <Chip
           label={`${registerTotals.totalSessions} Total`}
-          color="secondary"
           size="small"
           sx={{ fontWeight: 'bold' }}
         />

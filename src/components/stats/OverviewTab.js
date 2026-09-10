@@ -162,21 +162,19 @@ export default function OverviewTab({
         }}
       >
         {[
-          { label: 'Students', value: stats.totalStudents, color: 'primary.main' },
-          { label: 'Sessions', value: stats.totalSessions, color: 'secondary.main' },
+          { label: 'Students', value: stats.totalStudents },
+          { label: 'Sessions', value: stats.totalSessions },
           {
             label: 'Avg/Student',
             value: stats.averageSessionsPerStudent.toFixed(1),
-            color: 'info.main',
             tab: 2,
           },
           {
             label: 'Today',
             value: (stats.todaySessions?.school || 0) + (stats.todaySessions?.home || 0),
-            color: 'success.main',
-            subtitle: `${stats.todaySessions?.school || 0} school · ${stats.todaySessions?.home || 0} home`,
+            subtitle: `${stats.todaySessions?.school || 0} school, ${stats.todaySessions?.home || 0} home`,
           },
-        ].map(({ label, value, color, tab, subtitle }) => {
+        ].map(({ label, value, tab, subtitle }) => {
           const content = (
             <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -184,7 +182,7 @@ export default function OverviewTab({
               </Typography>
               <Typography
                 variant="h4"
-                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color }}
+                sx={{ fontFamily: '"Nunito", sans-serif', fontWeight: 800, color: 'text.primary' }}
               >
                 {value}
               </Typography>
@@ -356,36 +354,37 @@ export default function OverviewTab({
                   Active
                 </Typography>
               </Box>
-              <Box sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'accent.goldLight' }}>
-                <Typography
-                  variant="h5"
-                  sx={{ color: 'accent.gold', fontWeight: 800, fontFamily: '"Nunito", sans-serif' }}
-                >
-                  {stats.longestCurrentStreak}
-                </Typography>
-                <Typography sx={{ color: 'accent.gold', fontWeight: 600, fontSize: '0.65rem' }}>
-                  Best
-                </Typography>
-              </Box>
               <Box
-                sx={{
-                  textAlign: 'center',
-                  p: 1,
-                  borderRadius: 2,
-                  bgcolor: 'rgba(107, 142, 107, 0.1)',
-                }}
+                sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'accent.streakLight' }}
               >
                 <Typography
                   variant="h5"
                   sx={{
-                    color: 'primary.main',
+                    color: 'accent.streak',
+                    fontWeight: 800,
+                    fontFamily: '"Nunito", sans-serif',
+                  }}
+                >
+                  {stats.longestCurrentStreak}
+                </Typography>
+                <Typography sx={{ color: 'accent.streak', fontWeight: 600, fontSize: '0.65rem' }}>
+                  Best
+                </Typography>
+              </Box>
+              <Box
+                sx={{ textAlign: 'center', p: 1, borderRadius: 2, bgcolor: 'accent.streakLight' }}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: 'accent.streak',
                     fontWeight: 800,
                     fontFamily: '"Nunito", sans-serif',
                   }}
                 >
                   {stats.averageStreak.toFixed(1)}
                 </Typography>
-                <Typography sx={{ color: 'secondary.main', fontWeight: 600, fontSize: '0.65rem' }}>
+                <Typography sx={{ color: 'accent.streak', fontWeight: 600, fontSize: '0.65rem' }}>
                   Avg
                 </Typography>
               </Box>

@@ -401,6 +401,16 @@ files:
         returns: Promise<string>
         description: First free username, suffixing 2, 3, … on collision; checks inactive rows too and throws rather than looping
 
+  utils/dateLabels.js:
+    description: Shared "how long ago" labels for last-read dates (daysSince, daysAgoLabel, formatShortDate); used by the stats tabs
+    exports:
+      - name: daysSince
+        kind: function
+      - name: daysAgoLabel
+        kind: function
+      - name: formatShortDate
+        kind: function
+
   utils/yearGroup.js:
     description: Pure UK year-group parsing (shared by recommendations + badge key stage); robust to Wonde "2"/"R", demo "Year 2", "Y2", and class-name fallback
     exports:

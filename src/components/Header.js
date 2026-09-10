@@ -214,7 +214,9 @@ const Header = ({ currentTab, onOpenNews }) => {
                 width: 0, // see the note on the parent box: stops headlines resizing the row
                 minWidth: 0,
                 mr: 2,
-                display: { xs: 'none', sm: 'block' },
+                // Below md the class filter and name chip leave the ticker a
+                // 60px pill showing nothing but an icon and a chevron.
+                display: { xs: 'none', md: 'block' },
               }}
             >
               <ReadingNewsTicker

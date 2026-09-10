@@ -110,6 +110,7 @@ src/utils/bandTeamNames.js - Suggest band names from colours: HSL colourFamily c
 src/utils/readingObservations.js - Per-session reading-observation slots (6 fixed cols) + per-org config resolver (labels/enabled), shared by worker + app
 src/utils/studentProfile.js - Build student reading profile for AI context
 src/utils/username.js - firstname.lastname usernames for manually created staff accounts: derive from a name, normalise, validate, allocate a free one, and recognise the placeholder email
+src/utils/dateLabels.js - Shared last-read labels: daysSince, daysAgoLabel, formatShortDate
 src/utils/yearGroup.js - Pure UK year-group parsing: age band, class-name fallback, badge key stage (shared by recommendations + badges)
 src/utils/stringMatching.js - All string/title matching: Levenshtein similarity (import dedup, ~0.85) + fuzzy title similarity & findBestTitleMatch (metadata-provider ranking, ~0.3) + sanitizeForSearch (absorbed titleMatching.js)
 src/utils/bookDedup.js - Pure dedup helpers (normalizeIsbn, clusterDuplicates union-find, suggestCanonical, computeBackfill) for the owner merge tool
@@ -296,12 +297,12 @@ src/components/parent/ParentQRButton.js - Single-student QR dialog with print, c
 src/components/stats/ReadingStats.js - Stats dashboard with metrics and charts
 src/components/stats/AiSummaryPanel.js - AI narrative panel on the Stats page (generates on mount, copy-to-clipboard, regenerate)
 src/components/stats/OverviewTab.js - Stats overview with summary cards and trend indicators
-src/components/stats/FrequencyTab.js - Reading frequency analysis tab
+src/components/stats/FrequencyTab.js - Reading frequency tab (chart only; the per-pupil list beneath it was a duplicate and went in v3.132.0)
 src/components/stats/StreaksTab.js - Streak leaderboard and history tab
-src/components/stats/NeedsAttentionTab.js - Students needing reading attention tab
+src/components/stats/NeedsAttentionTab.js - Students needing reading attention: initials avatar, last-read date, days-ago figure per row
 src/components/stats/ReadingTimelineChart.js - Reading timeline line chart
 src/components/stats/ReadingFrequencyChart.js - Reading frequency bar chart
-src/components/stats/DaysSinceReadingChart.js - Days since reading indicator
+src/components/stats/DaysSinceReadingChart.js - Days since last reading per pupil: status dot + figure (no bars; a bar that grows with neglect reads the wrong way)
 src/components/stats/AchievementsTab.js - Achievements tab: garden hero + class goals, then a badge board (one tile per family, tiers as counts) opening a per-student dialog; exports BADGE_FAMILIES
 
 ## Frontend Components - News

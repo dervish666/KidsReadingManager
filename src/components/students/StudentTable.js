@@ -179,26 +179,32 @@ const StudentTable = React.memo(({ students }) => {
       >
         <Table sx={{ minWidth: { xs: 300, sm: 650 } }}>
           <TableHead>
-            <TableRow sx={{ bgcolor: 'primary.main' }}>
-              <TableCell sx={{ color: 'white', fontWeight: 600, width: { xs: '30%', sm: '25%' } }}>
+            <TableRow sx={{ bgcolor: 'rgba(107, 142, 107, 0.14)' }}>
+              <TableCell
+                sx={{ color: '#3F5A3F', fontWeight: 600, width: { xs: '30%', sm: '25%' } }}
+              >
                 <TableSortLabel
                   active={orderBy === 'name'}
                   direction={orderBy === 'name' ? order : 'asc'}
                   onClick={() => handleRequestSort('name')}
                   aria-label={`Sort by student name, currently ${orderBy === 'name' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
-                    color: 'white !important',
-                    '&:hover': { color: 'white !important' },
-                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
-                    '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: '#3F5A3F !important',
+                    '&:hover': { color: '#3F5A3F !important' },
+                    '& .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
+                    '&.Mui-active': { color: '#3F5A3F !important' },
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
                   }}
                 >
                   Student
                 </TableSortLabel>
               </TableCell>
               <TableCell
-                sx={{ color: 'white', fontWeight: 600, display: { xs: 'none', sm: 'table-cell' } }}
+                sx={{
+                  color: '#3F5A3F',
+                  fontWeight: 600,
+                  display: { xs: 'none', sm: 'table-cell' },
+                }}
               >
                 <TableSortLabel
                   active={orderBy === 'class'}
@@ -206,52 +212,56 @@ const StudentTable = React.memo(({ students }) => {
                   onClick={() => handleRequestSort('class')}
                   aria-label={`Sort by class, currently ${orderBy === 'class' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
-                    color: 'white !important',
-                    '&:hover': { color: 'white !important' },
-                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
-                    '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: '#3F5A3F !important',
+                    '&:hover': { color: '#3F5A3F !important' },
+                    '& .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
+                    '&.Mui-active': { color: '#3F5A3F !important' },
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
                   }}
                 >
                   Class
                 </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>
+              <TableCell sx={{ color: '#3F5A3F', fontWeight: 600 }}>
                 <TableSortLabel
                   active={orderBy === 'lastRead'}
                   direction={orderBy === 'lastRead' ? order : 'asc'}
                   onClick={() => handleRequestSort('lastRead')}
                   aria-label={`Sort by last school read date, currently ${orderBy === 'lastRead' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
-                    color: 'white !important',
-                    '&:hover': { color: 'white !important' },
-                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
-                    '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: '#3F5A3F !important',
+                    '&:hover': { color: '#3F5A3F !important' },
+                    '& .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
+                    '&.Mui-active': { color: '#3F5A3F !important' },
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
                   }}
                 >
                   Last Read (School)
                 </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600, textAlign: 'center' }}>
+              <TableCell sx={{ color: '#3F5A3F', fontWeight: 600, textAlign: 'center' }}>
                 <TableSortLabel
                   active={orderBy === 'sessions'}
                   direction={orderBy === 'sessions' ? order : 'asc'}
                   onClick={() => handleRequestSort('sessions')}
                   aria-label={`Sort by number of reading sessions, currently ${orderBy === 'sessions' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
-                    color: 'white !important',
-                    '&:hover': { color: 'white !important' },
-                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
-                    '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: '#3F5A3F !important',
+                    '&:hover': { color: '#3F5A3F !important' },
+                    '& .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
+                    '&.Mui-active': { color: '#3F5A3F !important' },
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
                   }}
                 >
                   Sessions
                 </TableSortLabel>
               </TableCell>
               <TableCell
-                sx={{ color: 'white', fontWeight: 600, display: { xs: 'none', sm: 'table-cell' } }}
+                sx={{
+                  color: '#3F5A3F',
+                  fontWeight: 600,
+                  display: { xs: 'none', sm: 'table-cell' },
+                }}
               >
                 <TableSortLabel
                   active={orderBy === 'band'}
@@ -259,17 +269,17 @@ const StudentTable = React.memo(({ students }) => {
                   onClick={() => handleRequestSort('band')}
                   aria-label={`Sort by reading band, currently ${orderBy === 'band' ? (order === 'asc' ? 'ascending' : 'descending') : 'unsorted'}`}
                   sx={{
-                    color: 'white !important',
-                    '&:hover': { color: 'white !important' },
-                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
-                    '&.Mui-active': { color: 'white !important' },
-                    '&.Mui-active .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: '#3F5A3F !important',
+                    '&:hover': { color: '#3F5A3F !important' },
+                    '& .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
+                    '&.Mui-active': { color: '#3F5A3F !important' },
+                    '&.Mui-active .MuiTableSortLabel-icon': { color: '#3F5A3F !important' },
                   }}
                 >
                   Band
                 </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600, width: 40, p: 0 }} />
+              <TableCell sx={{ color: '#3F5A3F', fontWeight: 600, width: 40, p: 0 }} />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -338,7 +348,7 @@ const StudentTable = React.memo(({ students }) => {
                               }}
                               sx={{
                                 bgcolor: showGreen ? 'success.main' : 'primary.main',
-                                color: 'white',
+                                color: '#3F5A3F',
                                 width: { xs: 36, sm: 40 },
                                 height: { xs: 36, sm: 40 },
                                 borderRadius: 1,
@@ -379,7 +389,7 @@ const StudentTable = React.memo(({ students }) => {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {student.name} ({student.totalSessionCount || 0})
+                            {student.name}
                           </Typography>
                           {student.currentStreak > 0 && (
                             <StreakBadge streak={student.currentStreak} size="small" />

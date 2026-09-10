@@ -1,16 +1,14 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
-  Alert,
-} from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
+import { Box, Typography, Paper, List, ListItem, ListItemText, Alert } from '@mui/material';
+import { daysAgoLabel, formatShortDate } from '../../utils/dateLabels';
+
+const initials = (name) =>
+  (name || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
 
 export default function NeedsAttentionTab({ students }) {
   return (
@@ -29,50 +27,46 @@ export default function NeedsAttentionTab({ students }) {
         </Alert>
       ) : (
         <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
-          <List>
+          <List disablePadding>
             {students.map((student) => (
-              <ListItem key={student.id} divider>
-                <ListItemIcon>
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      bgcolor: 'rgba(158, 75, 75, 0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <PersonIcon sx={{ color: 'status.notRead' }} />
-                  </Box>
-                </ListItemIcon>
+              <ListItem key={student.id} divider sx={{ gap: 1.5, py: 1.25 }}>
+                <Box
+                  aria-hidden="true"
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    bgcolor: 'rgba(139, 115, 85, 0.12)',
+                    color: 'secondary.dark',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    fontFamily: '"Nunito", sans-serif',
+                    flexShrink: 0,
+                  }}
+                >
+                  {initials(student.name)}
+                </Box>
                 <ListItemText
                   primary={
                     <Typography sx={{ fontWeight: 600, fontFamily: '"DM Sans", sans-serif' }}>
                       {student.name}
                     </Typography>
                   }
-                  secondary={`Last read: ${
+                  secondary={
                     student.lastReadDate
-                      ? new Date(student.lastReadDate).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })
-                      : 'Never'
-                  }`}
+                      ? `Last read ${formatShortDate(student.lastReadDate)}`
+                      : 'Never read'
+                  }
                 />
-                <Chip
-                  label="Needs Reading"
-                  sx={{
-                    bgcolor: 'rgba(158, 75, 75, 0.1)',
-                    color: 'status.notRead',
-                    fontWeight: 700,
-                    borderRadius: 2,
-                  }}
-                  size="small"
-                />
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'status.notRead', fontWeight: 700, whiteSpace: 'nowrap' }}
+                >
+                  {daysAgoLabel(student.lastReadDate)}
+                </Typography>
               </ListItem>
             ))}
           </List>
