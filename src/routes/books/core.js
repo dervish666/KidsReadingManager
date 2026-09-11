@@ -47,14 +47,20 @@ export const coreRouter = new Hono();
  * WHERE/ORDER/LIMIT — the filtering stays explicit and visible at each site,
  * only the part carrying the override rule is shared.
  *
- * Note `obs.is_available` is NOT filtered here. It reads like a soft-delete
- * flag but nothing ever writes 0 — removing a book from a school hard-deletes
- * the org_book_selections row (see DELETE /:id) — so the column is vestigial
- * and the existing filters on it are no-ops. Callers that already filter it
- * still do, deliberately unchanged; do not add or remove one without checking
- * whether the toggle has actually been built.
+ * `obs.is_available` is the pupil's-own-book flag, and it is NOT filtered
+ * here. `1` = the school holds the book (its library); `0` = a pupil brought
+ * their own copy from home and a teacher logged it without adding it to the
+ * library. Both kinds are linked to the org so sessions can reference them
+ * and the autocomplete can offer them again next week, but only `1` counts as
+ * the library: recommendations, the parent portal's library search, metadata
+ * enrichment and the book counts all filter `is_available = 1`, so a home
+ * book is never recommended to another child. Every upsert that adds a book
+ * to the library writes `1` on conflict, which is how a home book becomes a
+ * library book when the school buys a copy (`PUT /:id/ownership` does the
+ * same explicitly). `rowToBook` maps it to `fromHome`. Removing a book from a
+ * school still hard-deletes the row (see DELETE /:id).
  */
-const ORG_BOOK_SELECT = `SELECT b.*, obs.reading_level_override FROM books b
+const ORG_BOOK_SELECT = `SELECT b.*, obs.reading_level_override, obs.is_available FROM books b
       INNER JOIN org_book_selections obs ON b.id = obs.book_id`;
 
 /**
@@ -84,9 +90,15 @@ coreRouter.get('/', requireReadonly(), async (c) => {
     // so recently-touched books (the ones teachers are actively using) are
     // always in the local cache; BookAutocomplete falls through to the
     // external-provider search for anything further back.
+    //
+    // Pupils' own books (is_available = 0) are included: this list feeds the
+    // session autocomplete and the Books page, both of which need to offer a
+    // home book again and show it for conversion. `fromHome` carries the flag.
     if (all === 'true') {
       const columns =
-        fields === 'minimal' ? 'b.id, b.title, b.author' : 'b.*, obs.reading_level_override';
+        fields === 'minimal'
+          ? 'b.id, b.title, b.author, obs.is_available'
+          : 'b.*, obs.reading_level_override, obs.is_available';
       const parsedLimit = limit ? Math.max(1, Math.min(10000, parseInt(limit, 10) || 0)) : null;
       const limitClause = parsedLimit ? ` LIMIT ${parsedLimit}` : '';
       const orderClause = parsedLimit ? 'b.updated_at DESC, b.title' : 'b.title';
@@ -95,7 +107,7 @@ coreRouter.get('/', requireReadonly(), async (c) => {
           `
         SELECT ${columns} FROM books b
         INNER JOIN org_book_selections obs ON b.id = obs.book_id
-        WHERE obs.organization_id = ? AND obs.is_available = 1
+        WHERE obs.organization_id = ?
         ORDER BY ${orderClause}${limitClause}
       `
         )
@@ -105,7 +117,12 @@ coreRouter.get('/', requireReadonly(), async (c) => {
       c.header('Vary', 'X-Organization-Id');
       if (fields === 'minimal') {
         return c.json(
-          (result.results || []).map((r) => ({ id: r.id, title: r.title, author: r.author }))
+          (result.results || []).map((r) => ({
+            id: r.id,
+            title: r.title,
+            author: r.author,
+            fromHome: r.is_available === 0,
+          }))
         );
       }
       return c.json((result.results || []).map(rowToBook));
@@ -164,7 +181,7 @@ coreRouter.get('/', requireReadonly(), async (c) => {
       const offset = (pageNum - 1) * size;
       const countResult = await db
         .prepare(
-          'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
+          'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ?'
         )
         .bind(organizationId)
         .first();
@@ -173,7 +190,7 @@ coreRouter.get('/', requireReadonly(), async (c) => {
         .prepare(
           `
         ${ORG_BOOK_SELECT}
-        WHERE obs.organization_id = ? AND obs.is_available = 1
+        WHERE obs.organization_id = ?
         ORDER BY b.title LIMIT ? OFFSET ?
       `
         )
@@ -192,7 +209,7 @@ coreRouter.get('/', requireReadonly(), async (c) => {
     const defaultPageSize = 50;
     const countResult = await db
       .prepare(
-        'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ? AND obs.is_available = 1'
+        'SELECT COUNT(*) as count FROM books b INNER JOIN org_book_selections obs ON b.id = obs.book_id WHERE obs.organization_id = ?'
       )
       .bind(organizationId)
       .first();
@@ -201,7 +218,7 @@ coreRouter.get('/', requireReadonly(), async (c) => {
       .prepare(
         `
       ${ORG_BOOK_SELECT}
-      WHERE obs.organization_id = ? AND obs.is_available = 1
+      WHERE obs.organization_id = ?
       ORDER BY b.title LIMIT ? OFFSET 0
     `
       )
@@ -363,21 +380,23 @@ coreRouter.post('/', requireTeacher(), async (c) => {
   const provider = await createProvider(c.env);
   const savedBook = await provider.addBook(newBook);
 
-  // Link book to the current organization
+  // Link book to the current organization. `fromHome: true` records it as a
+  // pupil's own copy (is_available = 0): loggable, but not part of the library.
   const organizationId = c.get('organizationId');
+  const fromHome = bookData.fromHome === true;
   if (organizationId) {
     const db = c.env.READING_MANAGER_DB;
     if (db) {
       await db
         .prepare(
-          'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, 1)'
+          'INSERT OR IGNORE INTO org_book_selections (id, organization_id, book_id, is_available) VALUES (?, ?, ?, ?)'
         )
-        .bind(crypto.randomUUID(), organizationId, savedBook.id)
+        .bind(crypto.randomUUID(), organizationId, savedBook.id, fromHome ? 0 : 1)
         .run();
     }
   }
 
-  return c.json(savedBook, 201);
+  return c.json({ ...savedBook, fromHome }, 201);
 });
 
 /**
@@ -610,7 +629,7 @@ coreRouter.post('/:id/enrich', requireAdmin(), async (c) => {
   const book = await db
     .prepare(
       `${ORG_BOOK_SELECT}
-       WHERE b.id = ? AND obs.organization_id = ? AND obs.is_available = 1`
+       WHERE b.id = ? AND obs.organization_id = ?`
     )
     .bind(id, organizationId)
     .first();
@@ -656,6 +675,45 @@ coreRouter.post('/:id/enrich', requireAdmin(), async (c) => {
     coverStored,
     fieldsEnriched,
   });
+});
+
+/**
+ * PUT /api/books/:id/ownership
+ * Move a book between the school library and "pupil's own copy".
+ *
+ * Body: { fromHome: boolean }. `false` is the conversion path when a school
+ * buys a copy of a book a pupil first brought in from home; `true` corrects
+ * a book that was added to the library by mistake. Only the per-org link
+ * changes, the shared `books` row is untouched, so any teacher may do it.
+ *
+ * Requires authentication (at least teacher access)
+ */
+coreRouter.put('/:id/ownership', requireTeacher(), async (c) => {
+  const { id } = c.req.param();
+  const organizationId = c.get('organizationId');
+  const db = c.env.READING_MANAGER_DB;
+  if (!organizationId || !db) throw notFoundError('Book not found');
+
+  const body = await c.req.json().catch(() => ({}));
+  if (typeof body.fromHome !== 'boolean') {
+    throw badRequestError('fromHome must be true or false');
+  }
+
+  const result = await db
+    .prepare(
+      `UPDATE org_book_selections SET is_available = ?, updated_at = datetime('now')
+       WHERE organization_id = ? AND book_id = ?`
+    )
+    .bind(body.fromHome ? 0 : 1, organizationId, id)
+    .run();
+  if (!result?.meta?.changes) throw notFoundError('Book not found');
+
+  const row = await db
+    .prepare(`${ORG_BOOK_SELECT} WHERE b.id = ? AND obs.organization_id = ?`)
+    .bind(id, organizationId)
+    .first();
+  if (!row) throw notFoundError('Book not found');
+  return c.json(rowToBook(row));
 });
 
 /**

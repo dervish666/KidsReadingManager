@@ -34,6 +34,10 @@ export const rowToBook = (row) => {
     seriesName: row.series_name || null,
     seriesNumber: row.series_number ?? null,
     publicationYear: row.publication_year ?? null,
+    // Per-org ownership (org_book_selections.is_available): 0 means a pupil's
+    // own copy, logged but not in the school library. Only set when an
+    // org-scoped query selected the column; a global read leaves it false.
+    fromHome: row.is_available === 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

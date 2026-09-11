@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.135.0] - 2026-09-11
+
+### Added
+
+- **Log a pupil's own book without putting it in the library.** Children bring books in from home, and until now the only way to log one was "Add to Library", which put every home copy into the school catalogue and from there into other children's recommendations. Scanning a book the school does not hold now offers "Pupil's Own Book" beside "Add to Library"; the book picker on the record form has a small switch for the same choice when typing a title or picking an OpenLibrary result. A pupil's own copy can be logged against and picked again next week, shows a small home mark in the picker, and is left out of recommendations, the parent portal's library search, metadata enrichment, the library counts and the CSV export.
+- **Promote it when the school buys a copy.** The Books page shows a "Pupil's own" chip, an "Owned by" filter and an "Add to library" button per row; scanning a known home copy offers the same. Adding to the library always wins, so scanning a book the school already holds as "pupil's own" changes nothing. New endpoint `PUT /api/books/:id/ownership`.
+
+### Changed
+
+- **`org_book_selections.is_available` now means something.** It had been vestigial since 2024 (nothing ever wrote 0). `0` is now "pupil's own copy"; every library read already filtered on `1`, so the exclusion came free. Session validation and the parent home-reading log accept either value. `computeLibraryRecommendations` gained the filter it was missing.
+
 ## [3.134.0] - 2026-09-11
 
 ### Changed

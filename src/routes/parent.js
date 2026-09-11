@@ -512,9 +512,7 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
   // Verify library book is in org's selections (if provided)
   if (bookId) {
     const sel = await db
-      .prepare(
-        'SELECT 1 FROM org_book_selections WHERE book_id = ? AND organization_id = ? AND is_available = 1'
-      )
+      .prepare('SELECT 1 FROM org_book_selections WHERE book_id = ? AND organization_id = ?')
       .bind(bookId, organizationId)
       .first();
     if (!sel) {

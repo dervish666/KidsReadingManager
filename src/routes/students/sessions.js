@@ -209,11 +209,11 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     );
   }
 
+  // Any book linked to the org is loggable, a pupil's own copy
+  // (is_available = 0) included; the flag only keeps it out of the library.
   if (body.bookId) {
     const bookSelection = await db
-      .prepare(
-        'SELECT 1 FROM org_book_selections WHERE book_id = ? AND organization_id = ? AND is_available = 1'
-      )
+      .prepare('SELECT 1 FROM org_book_selections WHERE book_id = ? AND organization_id = ?')
       .bind(body.bookId, organizationId)
       .first();
     if (!bookSelection) {
@@ -409,13 +409,14 @@ sessionsRouter.post(
       );
     }
 
-    // Verify all referenced library books in one query
+    // Verify all referenced books are linked to the org in one query
+    // (pupils' own copies included, see the single-session route above)
     const bookIds = [...new Set(validated.map((s) => s.bookId).filter(Boolean))];
     if (bookIds.length > 0) {
       const ph = bookIds.map(() => '?').join(',');
       const found = await db
         .prepare(
-          `SELECT book_id FROM org_book_selections WHERE organization_id = ? AND is_available = 1 AND book_id IN (${ph})`
+          `SELECT book_id FROM org_book_selections WHERE organization_id = ? AND book_id IN (${ph})`
         )
         .bind(organizationId, ...bookIds)
         .all();

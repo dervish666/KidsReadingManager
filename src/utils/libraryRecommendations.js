@@ -42,7 +42,7 @@ export async function computeLibraryRecommendations(
       b.isbn, b.page_count, b.series_name, b.series_number, b.publication_year
     FROM books b
     INNER JOIN org_book_selections obs ON b.id = obs.book_id AND obs.organization_id = ?
-    WHERE 1=1
+    WHERE obs.is_available = 1
   `;
   const params = [organizationId];
 

@@ -155,6 +155,9 @@ files:
       - route: POST /api/books/:id/enrich
         description: Enrich single book via metadata cascade
         requires: admin
+      - route: PUT /api/books/:id/ownership
+        description: Move a book between the school library and a pupil's own copy (org_book_selections.is_available); body { fromHome }
+        requires: teacher
     imports:
       - from: routes/books/recommendations
         items: [recommendationsRouter]
@@ -200,6 +203,7 @@ files:
         description: Lookup book by ISBN (D1 then OpenLibrary)
         requires: teacher
       - route: POST /api/books/scan
+        note: body { isbn, confirm, fromHome } - fromHome links as a pupil's own copy (is_available = 0), library wins on conflict
         description: Scan ISBN barcode — link, preview, or create
         requires: teacher
     imports:

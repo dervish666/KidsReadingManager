@@ -7,8 +7,11 @@ import {
   Typography,
   CircularProgress,
   Box,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import ScanBookFlow from '../books/ScanBookFlow';
@@ -30,6 +33,11 @@ const BookAutocomplete = ({
   const [selectedBook, setSelectedBook] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  // "Pupil's own book": a book a child brought from home. Created books are
+  // linked to the school without joining its library, so they can be logged
+  // against and picked again but never recommended. Applies to the typed
+  // (Enter) and OpenLibrary paths; the scan dialog offers its own buttons.
+  const [fromHome, setFromHome] = useState(false);
 
   // External search state
   const [externalResults, setExternalResults] = useState([]);
@@ -146,8 +154,9 @@ const BookAutocomplete = ({
             onBookCreationStart();
           }
           try {
-            const book = await findOrCreateBook(bookData.title, bookData.author);
+            const book = await findOrCreateBook(bookData.title, bookData.author, { fromHome });
             setSelectedBook(book);
+            setFromHome(false);
             setInputValue(`${book.title}${book.author ? ` by ${book.author}` : ''}`);
             if (onChange) onChange(book);
             if (onBookCreated) onBookCreated(book);
@@ -164,12 +173,13 @@ const BookAutocomplete = ({
           onBookCreationStart();
         }
         try {
-          const metadata = {};
+          const metadata = { fromHome };
           if (newValue.isbn) metadata.isbn = newValue.isbn;
           if (newValue.publicationYear) metadata.publicationYear = newValue.publicationYear;
 
           const book = await findOrCreateBook(newValue.title, newValue.author, metadata);
           setSelectedBook(book);
+          setFromHome(false);
           setInputValue(`${book.title}${book.author ? ` by ${book.author}` : ''}`);
           if (onChange) onChange(book);
           if (onBookCreated) onBookCreated(book);
@@ -193,7 +203,7 @@ const BookAutocomplete = ({
         setIsCreating(false);
       }
     },
-    [findOrCreateBook, onChange, onBookCreated, onBookCreationStart]
+    [findOrCreateBook, onChange, onBookCreated, onBookCreationStart, fromHome]
   );
 
   // Handle input change
@@ -355,6 +365,17 @@ const BookAutocomplete = ({
                       (previously read)
                     </span>
                   )}
+                  {option.fromHome && (
+                    <Typography
+                      component="span"
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ ml: 1, display: 'inline-flex', alignItems: 'center', gap: 0.25 }}
+                    >
+                      <HomeOutlinedIcon sx={{ fontSize: 14 }} />
+                      pupil&apos;s own
+                    </Typography>
+                  )}
                 </span>
                 {option.author && (
                   <Typography variant="body2" color="text.secondary" component="span">
@@ -385,6 +406,25 @@ const BookAutocomplete = ({
           },
         }}
       />
+
+      {inputValue.trim() && !selectedBook && !isCreating && (
+        <FormControlLabel
+          sx={{ mt: 0.5, ml: 0 }}
+          control={
+            <Switch
+              size="small"
+              checked={fromHome}
+              onChange={(e) => setFromHome(e.target.checked)}
+              inputProps={{ 'aria-label': "Pupil's own book, not from the school library" }}
+            />
+          }
+          label={
+            <Typography variant="caption" color="text.secondary">
+              Pupil&apos;s own book (not in the school library)
+            </Typography>
+          }
+        />
+      )}
 
       <ScanBookFlow
         open={scanOpen}

@@ -24,6 +24,46 @@ function normalizeAuthorName(name) {
 }
 
 /**
+ * How this org holds a given book. `inLibrary` = on the school's shelves;
+ * `fromHome` = a pupil's own copy that was logged without being added to the
+ * library (org_book_selections.is_available = 0). Both false = not linked.
+ */
+async function getOrgLink(db, organizationId, bookId) {
+  if (!organizationId) return { inLibrary: false, fromHome: false };
+  const link = await db
+    .prepare(
+      'SELECT is_available FROM org_book_selections WHERE organization_id = ? AND book_id = ?'
+    )
+    .bind(organizationId, bookId)
+    .first();
+  if (!link) return { inLibrary: false, fromHome: false };
+  return { inLibrary: link.is_available !== 0, fromHome: link.is_available === 0 };
+}
+
+/**
+ * Link a book to the org. Adding to the library (`fromHome` false) always
+ * wins on conflict, which is how a pupil's own copy becomes a library book
+ * when the school buys one; recording a home copy never demotes a book the
+ * school already holds. Returns whether the row ended up as a home copy.
+ */
+async function linkBookToOrg(db, organizationId, bookId, fromHome) {
+  const row = await db
+    .prepare(
+      `
+        INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+        ON CONFLICT (organization_id, book_id) DO UPDATE SET
+          is_available = MAX(org_book_selections.is_available, excluded.is_available),
+          updated_at = datetime('now')
+        RETURNING is_available
+      `
+    )
+    .bind(crypto.randomUUID(), organizationId, bookId, fromHome ? 0 : 1)
+    .first();
+  return row ? row.is_available === 0 : fromHome;
+}
+
+/**
  * GET /api/books/search-external
  * Search external book databases (OpenLibrary) by title for typeahead suggestions.
  * Returns normalized results with title, author, ISBN, and publication year.
@@ -94,17 +134,8 @@ isbnRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
   if (db) {
     const row = await db.prepare('SELECT * FROM books WHERE isbn = ?').bind(normalized).first();
     if (row) {
-      let inLibrary = false;
-      if (organizationId) {
-        const orgLink = await db
-          .prepare(
-            'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
-          )
-          .bind(organizationId, row.id)
-          .first();
-        inLibrary = !!orgLink;
-      }
-      return c.json({ source: 'local', inLibrary, book: rowToBook(row) });
+      const { inLibrary, fromHome } = await getOrgLink(db, organizationId, row.id);
+      return c.json({ source: 'local', inLibrary, fromHome, book: rowToBook(row) });
     }
   }
 
@@ -133,36 +164,32 @@ isbnRouter.get('/isbn/:isbn', requireTeacher(), async (c) => {
       )
     );
     if (match) {
-      let inLibrary = false;
-      if (organizationId) {
-        const orgLink = await db
-          .prepare(
-            'SELECT 1 FROM org_book_selections WHERE organization_id = ? AND book_id = ? AND is_available = 1'
-          )
-          .bind(organizationId, match.id)
-          .first();
-        inLibrary = !!orgLink;
-      }
+      const { inLibrary, fromHome } = await getOrgLink(db, organizationId, match.id);
       return c.json({
         source: 'local',
         inLibrary,
+        fromHome,
         book: { ...rowToBook(match), isbn: match.isbn || normalized },
       });
     }
   }
 
-  return c.json({ source: 'openlibrary', inLibrary: false, book: olBook });
+  return c.json({ source: 'openlibrary', inLibrary: false, fromHome: false, book: olBook });
 });
 
 /**
  * POST /api/books/scan
  * Scan a book by ISBN — link existing, preview, or create new
  *
- * Request body: { isbn, confirm }
+ * Request body: { isbn, confirm, fromHome }
+ * `fromHome: true` records the book as a pupil's own copy: linked to the org
+ * so sessions can be logged against it, but not in the library and never
+ * recommended. Omit it to add the book to the library as before.
  * Requires authentication (at least teacher access)
  */
 isbnRouter.post('/scan', requireTeacher(), async (c) => {
-  const { isbn, confirm } = await c.req.json();
+  const { isbn, confirm, fromHome: fromHomeRaw } = await c.req.json();
+  const fromHome = fromHomeRaw === true;
   const normalized = normalizeISBN(isbn);
   if (!normalized) {
     throw badRequestError('Invalid ISBN');
@@ -179,19 +206,14 @@ isbnRouter.post('/scan', requireTeacher(), async (c) => {
 
   if (existingRow) {
     // Book exists — link to this org
+    let linkedFromHome = fromHome;
     if (organizationId && db) {
-      await db
-        .prepare(
-          `
-        INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
-        VALUES (?, ?, ?, 1, datetime('now'))
-        ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-      `
-        )
-        .bind(crypto.randomUUID(), organizationId, existingRow.id)
-        .run();
+      linkedFromHome = await linkBookToOrg(db, organizationId, existingRow.id, fromHome);
     }
-    return c.json({ action: 'linked', book: rowToBook(existingRow) });
+    return c.json({
+      action: 'linked',
+      book: { ...rowToBook(existingRow), fromHome: linkedFromHome },
+    });
   }
 
   // Not found locally by ISBN — look up on OpenLibrary
@@ -234,21 +256,13 @@ isbnRouter.post('/scan', requireTeacher(), async (c) => {
           .bind(normalized, match.id)
           .run();
       }
+      let linkedFromHome = fromHome;
       if (organizationId) {
-        await db
-          .prepare(
-            `
-          INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
-          VALUES (?, ?, ?, 1, datetime('now'))
-          ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-        `
-          )
-          .bind(crypto.randomUUID(), organizationId, match.id)
-          .run();
+        linkedFromHome = await linkBookToOrg(db, organizationId, match.id, fromHome);
       }
       return c.json({
         action: 'linked',
-        book: { ...rowToBook(match), isbn: match.isbn || normalized },
+        book: { ...rowToBook(match), isbn: match.isbn || normalized, fromHome: linkedFromHome },
       });
     }
   }
@@ -274,19 +288,10 @@ isbnRouter.post('/scan', requireTeacher(), async (c) => {
 
   // Link to org
   if (organizationId && db) {
-    await db
-      .prepare(
-        `
-      INSERT INTO org_book_selections (id, organization_id, book_id, is_available, created_at)
-      VALUES (?, ?, ?, 1, datetime('now'))
-      ON CONFLICT (organization_id, book_id) DO UPDATE SET is_available = 1, updated_at = datetime('now')
-    `
-      )
-      .bind(crypto.randomUUID(), organizationId, savedBook.id)
-      .run();
+    await linkBookToOrg(db, organizationId, savedBook.id, fromHome);
   }
 
-  return c.json({ action: 'created', book: savedBook }, 201);
+  return c.json({ action: 'created', book: { ...savedBook, fromHome } }, 201);
 });
 
 export { isbnRouter };

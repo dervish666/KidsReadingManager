@@ -31,6 +31,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import SearchIcon from '@mui/icons-material/Search';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { parseCSV, isDuplicateBook } from './bookImportUtils';
@@ -42,7 +43,14 @@ import BookCover from '../BookCover';
 
 const BookManager = () => {
   const { fetchWithAuth } = useAuth();
-  const { books: contextBooks, genres, addBook, removeBookLocal, reloadBooks } = useData();
+  const {
+    books: contextBooks,
+    genres,
+    addBook,
+    removeBookLocal,
+    upsertBookLocal,
+    reloadBooks,
+  } = useData();
   const [fullBooks, setFullBooks] = useState(null);
   const books = fullBooks || contextBooks;
 
@@ -99,6 +107,10 @@ const BookManager = () => {
   const [readingLevelFilter, setReadingLevelFilter] = useState('');
   const [levelRangeFilter, setLevelRangeFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  // '' = everything, 'library' = the school's own books, 'home' = pupils' own
+  // copies (logged against, never recommended) waiting to be bought or not.
+  const [ownershipFilter, setOwnershipFilter] = useState('');
+  const [promotingId, setPromotingId] = useState(null);
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
 
@@ -134,6 +146,34 @@ const BookManager = () => {
       setError('');
     } catch (error) {
       setError('Failed to add book');
+    }
+  };
+
+  // The school has bought a copy of a pupil's own book: flip the per-org link
+  // so it joins the library (and the recommendation pool) without touching
+  // the shared book row.
+  const handlePromoteToLibrary = async (book) => {
+    setPromotingId(book.id);
+    try {
+      const response = await fetchWithAuth(`/api/books/${encodeURIComponent(book.id)}/ownership`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromHome: false }),
+      });
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const updated = await response.json();
+      setFullBooks((prev) => (prev ? prev.map((b) => (b.id === updated.id ? updated : b)) : prev));
+      upsertBookLocal(updated);
+      setSnackbar({
+        open: true,
+        message: `"${book.title}" added to the library`,
+        severity: 'success',
+      });
+    } catch (err) {
+      console.error('Failed to add book to library:', err);
+      setSnackbar({ open: true, message: 'Failed to add book to the library', severity: 'error' });
+    } finally {
+      setPromotingId(null);
     }
   };
 
@@ -322,6 +362,12 @@ const BookManager = () => {
         .sort((a, b) => (a.seriesNumber ?? Infinity) - (b.seriesNumber ?? Infinity));
     }
 
+    if (ownershipFilter === 'home') {
+      filtered = filtered.filter((book) => book.fromHome);
+    } else if (ownershipFilter === 'library') {
+      filtered = filtered.filter((book) => !book.fromHome);
+    }
+
     // Reading level filter with optional range
     if (readingLevelFilter) {
       const baseLevel = parseFloat(readingLevelFilter);
@@ -341,7 +387,17 @@ const BookManager = () => {
     }
 
     return filtered;
-  }, [books, searchQuery, genreFilter, seriesFilter, readingLevelFilter, levelRangeFilter]);
+  }, [
+    books,
+    searchQuery,
+    genreFilter,
+    seriesFilter,
+    ownershipFilter,
+    readingLevelFilter,
+    levelRangeFilter,
+  ]);
+
+  const homeBookCount = useMemo(() => books.filter((book) => book.fromHome).length, [books]);
 
   const handleSeriesFilterChange = (event, newValue) => {
     setSeriesFilter(newValue);
@@ -367,6 +423,11 @@ const BookManager = () => {
   const handleSearchQueryChange = (event) => {
     setSearchQuery(event.target.value);
     setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleOwnershipFilterChange = (event) => {
+    setOwnershipFilter(event.target.value);
+    setCurrentPage(1);
   };
 
   const getGenreName = (genreId) => {
@@ -466,7 +527,7 @@ const BookManager = () => {
 
               {/* Import/Export Button with Menu */}
               <BookExportMenu
-                books={books}
+                books={books.filter((book) => !book.fromHome)}
                 genres={genres}
                 onImportClick={() => setShowImportWizard(true)}
                 onSnackbar={setSnackbar}
@@ -504,7 +565,7 @@ const BookManager = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="subtitle1">
               Existing Books (
-              {genreFilter || seriesFilter || readingLevelFilter || searchQuery
+              {genreFilter || seriesFilter || readingLevelFilter || searchQuery || ownershipFilter
                 ? `${filteredBooks.length} of ${books.length}`
                 : books.length}
               )
@@ -542,6 +603,22 @@ const BookManager = () => {
                       {genre.name}
                     </MenuItem>
                   ))}
+                </Select>
+              </FormControl>
+            )}
+
+            {/* Ownership filter: only worth showing once a pupil's own book exists */}
+            {homeBookCount > 0 && (
+              <FormControl size="small" sx={{ minWidth: 170 }}>
+                <InputLabel>Owned by</InputLabel>
+                <Select
+                  value={ownershipFilter}
+                  label="Owned by"
+                  onChange={handleOwnershipFilterChange}
+                >
+                  <MenuItem value="">All books</MenuItem>
+                  <MenuItem value="library">School library</MenuItem>
+                  <MenuItem value="home">Pupils&apos; own ({homeBookCount})</MenuItem>
                 </Select>
               </FormControl>
             )}
@@ -646,17 +723,34 @@ const BookManager = () => {
                     },
                   }}
                   secondaryAction={
-                    <IconButton
-                      edge="end"
-                      aria-label="delete"
-                      color="error"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClick(book);
-                      }}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {book.fromHome && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<LibraryBooksIcon />}
+                          disabled={promotingId === book.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePromoteToLibrary(book);
+                          }}
+                          sx={{ whiteSpace: 'nowrap' }}
+                        >
+                          Add to library
+                        </Button>
+                      )}
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        color="error"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(book);
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
                   }
                 >
                   <Box sx={{ mr: 1.5, flexShrink: 0 }}>
@@ -688,6 +782,21 @@ const BookManager = () => {
                             size="small"
                             variant="outlined"
                             sx={{ flexShrink: 0 }}
+                          />
+                        )}
+                        {book.fromHome && (
+                          <Chip
+                            icon={<HomeOutlinedIcon />}
+                            label="Pupil's own"
+                            size="small"
+                            color="info"
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOwnershipFilter('home');
+                              setCurrentPage(1);
+                            }}
+                            sx={{ flexShrink: 0, fontSize: '0.7rem', height: 20 }}
                           />
                         )}
                         {/* Series chip */}

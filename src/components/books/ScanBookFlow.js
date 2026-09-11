@@ -11,6 +11,7 @@ import {
   Alert,
   Divider,
 } from '@mui/material';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import BarcodeScanner from './BarcodeScanner';
 import BookCover from '../BookCover';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,6 +25,11 @@ import { useData } from '../../contexts/DataContext';
  * - open (boolean): Whether the dialog is open
  * - onClose (() => void): Called when the dialog should close
  * - onBookSelected ((book) => void): Called when a book is confirmed/selected
+ *
+ * A book that isn't in the school library gets two choices: "Add to Library"
+ * (the school holds it) or "Pupil's Own Book" (a copy brought from home,
+ * loggable but never recommended, `fromHome: true`). A known home copy can be
+ * selected as-is or promoted to the library when the school buys one.
  */
 
 // Step states for the flow
@@ -86,36 +92,72 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
     resetState();
   }, [resetState]);
 
-  const handleAddToLibrary = useCallback(async () => {
-    if (!isbn) return;
-    setIsAdding(true);
+  const finishWithBook = useCallback(
+    (book) => {
+      // Patch the returned book into the shared books list locally instead of
+      // reloading the whole dataset.
+      if (book) {
+        upsertBookLocal(book);
+      }
+      if (onBookSelected) {
+        onBookSelected(book);
+      }
+      resetState();
+    },
+    [upsertBookLocal, onBookSelected, resetState]
+  );
 
+  const handleAddBook = useCallback(
+    async (fromHome) => {
+      if (!isbn) return;
+      setIsAdding(true);
+
+      try {
+        const response = await fetchWithAuth('/api/books/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isbn, confirm: true, fromHome }),
+        });
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `Failed to add book (${response.status})`);
+        }
+        const result = await response.json();
+        finishWithBook(result.book);
+      } catch (err) {
+        setErrorMessage(err.message || 'Failed to add book');
+        setStep(STEPS.ERROR);
+        setIsAdding(false);
+      }
+    },
+    [isbn, fetchWithAuth, finishWithBook]
+  );
+
+  const handleAddToLibrary = useCallback(() => handleAddBook(false), [handleAddBook]);
+  const handleAddAsHomeBook = useCallback(() => handleAddBook(true), [handleAddBook]);
+
+  // A pupil's own copy the school has now bought: flip the per-org link.
+  const handlePromoteToLibrary = useCallback(async () => {
+    const bookId = lookupResult?.book?.id;
+    if (!bookId) return;
+    setIsAdding(true);
     try {
-      const response = await fetchWithAuth('/api/books/scan', {
-        method: 'POST',
+      const response = await fetchWithAuth(`/api/books/${encodeURIComponent(bookId)}/ownership`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isbn, confirm: true }),
+        body: JSON.stringify({ fromHome: false }),
       });
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.message || `Failed to add book (${response.status})`);
       }
-      const result = await response.json();
-      // The scan endpoint returns the saved/linked book — patch it into the
-      // shared books list locally instead of reloading the whole dataset.
-      if (result.book) {
-        upsertBookLocal(result.book);
-      }
-      if (onBookSelected) {
-        onBookSelected(result.book);
-      }
-      resetState();
+      finishWithBook(await response.json());
     } catch (err) {
       setErrorMessage(err.message || 'Failed to add book to library');
       setStep(STEPS.ERROR);
       setIsAdding(false);
     }
-  }, [isbn, fetchWithAuth, upsertBookLocal, onBookSelected, resetState]);
+  }, [lookupResult, fetchWithAuth, finishWithBook]);
 
   const handleSelectBook = useCallback(() => {
     if (lookupResult && lookupResult.book && onBookSelected) {
@@ -173,11 +215,19 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
                 This book is already in your library
               </Alert>
             )}
-            {lookupResult.source === 'local' && !lookupResult.inLibrary && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                This book exists but isn't in your school's library yet
+            {lookupResult.source === 'local' && lookupResult.fromHome && (
+              <Alert severity="info" icon={<HomeOutlinedIcon />} sx={{ mb: 2 }}>
+                One of your pupils&apos; own books. Select it to log a session, or add it to the
+                library if the school now has a copy.
               </Alert>
             )}
+            {lookupResult.source === 'local' &&
+              !lookupResult.inLibrary &&
+              !lookupResult.fromHome && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  This book exists but isn't in your school's library yet
+                </Alert>
+              )}
             {lookupResult.source === 'not_found' && (
               <Alert severity="warning" sx={{ mb: 2 }}>
                 Book not found. ISBN: {lookupResult.isbn || isbn}
@@ -257,28 +307,46 @@ const ScanBookFlow = ({ open, onClose, onBookSelected }) => {
               </Button>
             )}
 
-            {/* "Add to Library" — local book NOT in library */}
-            {lookupResult.source === 'local' && !lookupResult.inLibrary && (
-              <Button
-                onClick={handleAddToLibrary}
-                variant="contained"
-                disabled={isAdding}
-                startIcon={isAdding ? <CircularProgress size={16} /> : null}
-              >
-                {isAdding ? 'Adding...' : 'Add to Library'}
-              </Button>
+            {/* Known pupil's own copy: use as-is, or promote now the school has one */}
+            {lookupResult.source === 'local' && lookupResult.fromHome && (
+              <>
+                <Button
+                  onClick={handlePromoteToLibrary}
+                  variant="outlined"
+                  disabled={isAdding}
+                  startIcon={isAdding ? <CircularProgress size={16} /> : null}
+                >
+                  {isAdding ? 'Adding...' : 'Add to Library'}
+                </Button>
+                <Button onClick={handleSelectBook} variant="contained" disabled={isAdding}>
+                  Select This Book
+                </Button>
+              </>
             )}
 
-            {/* "Add to Library" — OpenLibrary result */}
-            {lookupResult.source === 'openlibrary' && (
-              <Button
-                onClick={handleAddToLibrary}
-                variant="contained"
-                disabled={isAdding}
-                startIcon={isAdding ? <CircularProgress size={16} /> : null}
-              >
-                {isAdding ? 'Adding...' : 'Add to Library'}
-              </Button>
+            {/* Not in this school at all (local unlinked or OpenLibrary): two ways in */}
+            {((lookupResult.source === 'local' &&
+              !lookupResult.inLibrary &&
+              !lookupResult.fromHome) ||
+              lookupResult.source === 'openlibrary') && (
+              <>
+                <Button
+                  onClick={handleAddAsHomeBook}
+                  variant="outlined"
+                  disabled={isAdding}
+                  startIcon={<HomeOutlinedIcon />}
+                >
+                  Pupil&apos;s Own Book
+                </Button>
+                <Button
+                  onClick={handleAddToLibrary}
+                  variant="contained"
+                  disabled={isAdding}
+                  startIcon={isAdding ? <CircularProgress size={16} /> : null}
+                >
+                  {isAdding ? 'Adding...' : 'Add to Library'}
+                </Button>
+              </>
             )}
           </>
         )}

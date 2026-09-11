@@ -592,6 +592,11 @@ const SessionForm = () => {
                         by {bookAuthor}
                       </Typography>
                     )}
+                    {selectedBook?.fromHome && (
+                      <Typography variant="caption" color="text.secondary" noWrap>
+                        Pupil&apos;s own copy, not in the school library
+                      </Typography>
+                    )}
                   </Box>
                   <Button
                     size="small"
