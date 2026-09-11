@@ -13,6 +13,11 @@ describe('rowToStudent band fields', () => {
     expect(s.bandReadsCount).toBe(0);
     expect(s.baselineReads).toBe(0);
   });
+  it('maps band_year_start so the client can tell a stale count from this year', () => {
+    const s = rowToStudent({ id: 's1', name: 'Aria', band_year_start: '2026-08-01' });
+    expect(s.bandYearStart).toBe('2026-08-01');
+    expect(rowToStudent({ id: 's2', name: 'Bo' }).bandYearStart).toBeNull();
+  });
   it('maps baseline_reads', () => {
     const s = rowToStudent({ id: 's1', name: 'Aria', baseline_reads: 30 });
     expect(s.baselineReads).toBe(30);

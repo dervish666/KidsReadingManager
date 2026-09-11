@@ -277,6 +277,22 @@ files:
         returns: object
         description: Band at clamped index [0,15]; uses palette colour when provided and valid, auto-computes textColor via pickTextColor
 
+  utils/startingReads.js:
+    description: Pure gate for the Students-page Starting Reads roster button; shared by frontend and tests
+    exports:
+      - name: STARTING_READS_THRESHOLD
+        kind: const
+        description: Share of pupils in view with a read this year below which the button shows (0.5)
+      - name: hasReadThisYear
+        kind: function
+        params: [{name: student}, {name: yearStart}]
+        returns: boolean
+        description: Band count stamped for this year, or last_read_date on/after the year start
+      - name: needsStartingReads
+        kind: function
+        params: [{name: students}, {name: options}]
+        returns: boolean
+        description: Fewer than threshold of active pupils have a read this year; false for an empty roster
   utils/readingBandEngine.js:
     description: Pure reading-band maths (no I/O), mirrors streakCalculator
     exports:

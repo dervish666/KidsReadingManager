@@ -35,12 +35,15 @@ import BulkImport from './BulkImport';
 import BaselineReadsDialog from './BaselineReadsDialog';
 import PrioritizedStudentsList from './PrioritizedStudentsList';
 import QRCodeSheet from '../parent/QRCodeSheet';
+import { needsStartingReads } from '../../utils/startingReads';
 
 const StudentList = () => {
-  const { user, apiError } = useAuth();
+  const { user, apiError, canManageStudents: isStaff } = useAuth();
   const { students, loading, addStudent, classes } = useData();
   const { globalClassFilter, getReadingStatus } = useUI();
 
+  // Roster edits (add, bulk import) are for schools that type their own pupils
+  // in; a Wonde-synced roster or an SSO sign-in means the MIS owns the list.
   const isWondeOrg = useMemo(() => classes.some((cls) => cls.wondeClassId), [classes]);
   const canManageStudents = user?.authProvider !== 'mylogin' && !isWondeOrg;
   useTour('students', { ready: students.length > 0 });
@@ -126,6 +129,23 @@ const StudentList = () => {
 
     return filteredStudents;
   }, [students, classes, globalClassFilter, searchQuery, statusFilter, getReadingStatus]);
+
+  // Starting Reads is Tally-only data (it never touches the MIS), so any staff
+  // role gets it regardless of Wonde — but only while the school or class in
+  // view has little reading logged this year. Scope follows the class filter,
+  // ignoring the search box and status chips, so a teacher sees it for their
+  // own class and an admin on "All" sees it for the whole school.
+  const showStartingReads = useMemo(() => {
+    if (!isStaff) return false;
+    const disabledClassIds = new Set(classes.filter((cls) => cls.disabled).map((cls) => cls.id));
+    const inScope = students.filter((student) => {
+      if (student.classId && disabledClassIds.has(student.classId)) return false;
+      if (globalClassFilter === 'all') return true;
+      if (globalClassFilter === 'unassigned') return !student.classId;
+      return student.classId === globalClassFilter;
+    });
+    return needsStartingReads(inScope);
+  }, [isStaff, students, classes, globalClassFilter]);
 
   // Reset to page 1 when filters or sort change
   useEffect(() => {
@@ -225,29 +245,31 @@ const StudentList = () => {
               <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Input</Box>
             </Button>
           )}
-          {canManageStudents && (
-            <Button
-              variant="outlined"
-              onClick={() => setOpenBaselineDialog(true)}
-              size="medium"
-              sx={{
-                flex: { xs: 1, sm: 'none' },
-                minWidth: { xs: 'auto', sm: 120 },
-                borderRadius: 4,
-                border: '2px solid rgba(107, 142, 107, 0.2)',
-                color: 'primary.main',
-                fontWeight: 700,
-                '&:hover': {
-                  borderWidth: '2px',
-                  borderStyle: 'solid',
-                  borderColor: 'primary.main',
-                  backgroundColor: 'rgba(107, 142, 107, 0.05)',
-                },
-              }}
-            >
-              <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Starting Reads</Box>
-              <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Reads</Box>
-            </Button>
+          {showStartingReads && (
+            <Tooltip title="Most of these pupils have no reads logged this year yet. Enter the totals from your previous records so their Reading Bands carry over.">
+              <Button
+                variant="outlined"
+                onClick={() => setOpenBaselineDialog(true)}
+                size="medium"
+                sx={{
+                  flex: { xs: 1, sm: 'none' },
+                  minWidth: { xs: 'auto', sm: 120 },
+                  borderRadius: 4,
+                  border: '2px solid rgba(107, 142, 107, 0.2)',
+                  color: 'primary.main',
+                  fontWeight: 700,
+                  '&:hover': {
+                    borderWidth: '2px',
+                    borderStyle: 'solid',
+                    borderColor: 'primary.main',
+                    backgroundColor: 'rgba(107, 142, 107, 0.05)',
+                  },
+                }}
+              >
+                <Box sx={{ display: { xs: 'none', sm: 'inline' } }}>Starting Reads</Box>
+                <Box sx={{ display: { xs: 'inline', sm: 'none' } }}>Reads</Box>
+              </Button>
+            </Tooltip>
           )}
           {canManageStudents && (
             <Button

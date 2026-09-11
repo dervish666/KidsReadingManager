@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.134.0] - 2026-09-11
+
+### Changed
+
+- **Starting Reads shows itself when a school needs it, Wonde schools included.** The roster button on the Students page used to share a gate with Add Student and Bulk Input, so any school whose pupils come from Wonde never saw it. Cheddar Grove has kept paper reading records for the first week of term and had no way to carry those totals in. The button now appears for any staff role whenever fewer than half the pupils in view have a read logged this academic year (a band count stamped for this year, or a last-read date on or after 1 September), and hides again once they do. Scope follows the class filter, so a teacher sees it for their own class and an admin on "All" sees it for the whole school. Seeding a class counts as reading, so the button goes away as each class is brought up to date. Demo school is untouched: half its pupils already have a read this term.
+
 ## [3.133.1] - 2026-09-10
 
 ### Changed
@@ -16,6 +22,7 @@
 
 - **Pages end where their content ends.** The sheet each page sits in used to be pinned to the height of the screen, so Record Session and Recommend showed a card with a great deal of empty cream underneath. Long pages still scroll inside the sheet as before.
 - **The landing page uses the app's own typefaces.** Headings are Nunito and body is DM Sans, the same as inside Tally. The serif display face is gone, along with its font download, and the Help page follows suit.
+
 ## [3.132.0] - 2026-09-10
 
 A tidy-up pass across the app so every page reads the way the new Achievements page does. Nothing moved; things that said the same thing twice, or wore a colour for no reason, stopped.
