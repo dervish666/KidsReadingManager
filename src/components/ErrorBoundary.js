@@ -1,13 +1,14 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import HomeIcon from '@mui/icons-material/Home';
+import { recoverFromChunkError } from '../utils/chunkRecovery';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, recovering: false };
   }
 
   static getDerivedStateFromError(error) {
@@ -16,10 +17,42 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
+
+    // A lazy route whose chunk has been replaced by a deploy is not a crash,
+    // it is a stale tab. Reload once to pick up the current bundle instead of
+    // showing a scary panel and filing a ticket about it. If the reload has
+    // already been spent, we fall through and report as normal, so a genuinely
+    // broken chunk still reaches Sentry on the second attempt.
+    if (recoverFromChunkError(error)) {
+      this.setState({ recovering: true });
+      return;
+    }
+
     Sentry.captureException(error, { extra: errorInfo });
   }
 
   render() {
+    if (this.state.recovering) {
+      return (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '100vh',
+            gap: 2,
+            backgroundColor: '#F5F0E8',
+          }}
+        >
+          <CircularProgress sx={{ color: '#6B8E6B' }} />
+          <Typography variant="body2" sx={{ color: '#666666' }}>
+            Updating to the latest version...
+          </Typography>
+        </Box>
+      );
+    }
+
     if (this.state.hasError) {
       return (
         <Box

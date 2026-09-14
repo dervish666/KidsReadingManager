@@ -399,15 +399,61 @@ export default Sentry.withSentry(
         return response;
       }
 
-      // Non-/api/* requests do not reach this Worker at all. wrangler.toml sets
-      // run_worker_first = ["/api/*"], so Cloudflare's asset server handles
-      // every other path directly, applies public/_headers, and does the SPA
-      // fallback via not_found_handling.
+      // Content-hashed bundles. wrangler.toml routes these through the Worker
+      // (run_worker_first) for one reason: to turn a miss into a real 404.
+      //
+      // not_found_handling = "single-page-application" is right for page
+      // routes and wrong for assets. Under /static/ it answers a missing
+      // bundle with index.html and a 200, and because public/_headers matches
+      // on the request path rather than on what was served, that HTML came
+      // back marked `Cache-Control: public, max-age=31536000, immutable`.
+      // Verified against production on 14 Sep 2026:
+      //
+      //   curl -I https://tallyreading.uk/static/css/async/12.deadbeef99.css
+      //   HTTP/2 200 · content-type: text/html
+      //   cache-control: public, max-age=31536000, immutable
+      //
+      // Two consequences. The browser asked for CSS, got HTML, and with
+      // `nosniff` refused it, which is the "Loading CSS chunk N failed" class
+      // of error. And an `immutable` response pinned to an asset URL is not
+      // revalidated for a year, so if that ever landed on a URL the current
+      // index.html still points at, refreshing would not clear it.
+      //
+      // build/static holds only .js, .css, .txt and .webp, never HTML, so an
+      // HTML body under this prefix means the fallback fired and nothing else.
+      if (url.pathname.startsWith('/static/')) {
+        const response = await env.ASSETS.fetch(request);
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+          console.warn(`Missing static asset: ${url.pathname}`);
+          return new Response('Not Found', {
+            status: 404,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              // Never let a miss be cached. This is the header that would
+              // otherwise outlive the deploy that caused it.
+              'Cache-Control': 'no-store',
+              'X-Content-Type-Options': 'nosniff',
+            },
+          });
+        }
+        // A real asset: hand back exactly what the asset server produced,
+        // public/_headers included. Setting our own headers here is how the
+        // previous version of this branch drifted into shipping a weaker CSP
+        // than the one that actually applies.
+        return response;
+      }
+
+      // Every other non-/api/* request does not reach this Worker at all.
+      // Cloudflare's asset server handles those paths directly, applies
+      // public/_headers, and does the SPA fallback via not_found_handling.
       //
       // There used to be an env.ASSETS.fetch() branch here that set its own
-      // security headers, CSP and Cache-Control. It was dead twice over: the
-      // [assets] block declares no `binding`, so env.ASSETS was undefined, and
-      // the requests never arrived anyway. That mattered because the code read
+      // security headers, CSP and Cache-Control for every path. It was dead
+      // twice over: the [assets] block declared no `binding`, so env.ASSETS
+      // was undefined, and the requests never arrived anyway. (The binding
+      // exists now, but only /static/* is routed to it, and that branch adds
+      // no headers of its own.) The dead code mattered because it read
       // as authoritative — its CSP had drifted to be strictly weaker than the
       // one that actually ships (no object-src, base-uri, form-action,
       // manifest-src or upgrade-insecure-requests, and a narrower Sentry

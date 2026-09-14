@@ -41,8 +41,14 @@ bucket_name = "book-covers"
 # so browser navigations (e.g. OAuth callbacks) hit the Worker, not index.html
 [assets]
 directory = "./build"
+binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/api/*"]
+# /static/* runs through the Worker so a missing content-hashed bundle can
+# answer 404. Left to the asset server, not_found_handling turns it into
+# index.html with a 200, and public/_headers then stamps that HTML with
+# `immutable, max-age=31536000` because the rule matches on request path, not
+# on what was served. See the /static/ branch in src/worker.js.
+run_worker_first = ["/api/*", "/static/*"]
 
 # Environment variables
 [vars]

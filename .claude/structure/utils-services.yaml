@@ -19,6 +19,31 @@ files:
         returns: boolean
         description: True when an AI action should be offered; fails closed on unknown keySource
 
+  utils/chunkRecovery.js:
+    description: >
+      Recovery for failed lazy-chunk loads. Every route in App.js is a
+      React.lazy import, so a tab opened before a deploy points at
+      content-hashed bundles that are no longer served and the next navigation
+      throws ChunkLoadError / CSS_CHUNK_LOAD_FAILED. index.html is no-cache, so
+      one reload fixes it. Guarded by a 30s sessionStorage cooldown (a
+      permanent flag would refuse the next deploy its own retry; no guard at
+      all turns a bad deploy into a refresh loop) and skipped for crawlers.
+    exports:
+      - name: isChunkLoadError
+        kind: function
+        params: [{name: error, type: Error}]
+        returns: boolean
+        description: >
+          True for both loaders. The CSS loader sets code=CSS_CHUNK_LOAD_FAILED
+          and leaves name as plain Error, so matching on name alone misses it.
+      - name: recoverFromChunkError
+        kind: function
+        params:
+          - {name: error, type: Error}
+          - {name: options, type: object, description: "storage/userAgent/reload/now, injected for tests"}
+        returns: boolean
+        description: True if a reload was triggered; caller should stop and not report
+
   utils/ftsFallback.js:
     description: >
       One greppable log line per FTS5 -> LIKE degrade. The fallback returns

@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.135.1] - 2026-09-14
+
+### Fixed
+
+- **A search engine crawling the home page no longer looks like an outage.** The landing page loads as its own bundle, so a crawler that starts fetching the page and gives up halfway files a convincing "Loading CSS chunk 12 failed" against a stylesheet that is live and serving perfectly well. One such report (bingbot, 13 September) read as a broken deploy hitting real visitors and took an afternoon to disprove. Errors from crawlers are now dropped before they leave the browser.
+- **A tab left open across a deploy now refreshes itself.** Each screen is fetched on demand, and those files are renamed on every release, so a tab that has been open since before a deploy asks for files that are no longer there. It showed "Something went wrong" and needed a manual refresh. It now reloads once, quietly, and lands on the current version. It will only do that once in any thirty seconds, so a genuinely broken release still reports the error rather than refreshing in a loop.
+- **A missing app file answers "not found" instead of the home page.** Anything under `/static/` that did not exist was being served the home page with a success code, and cached as unchangeable for a year. A browser asking for a stylesheet got a web page, refused it, and reported the chunk error above. Worse, a wrongly cached entry would have survived any number of refreshes. Those requests now return a real 404 that is never cached.
+
 ## [3.135.0] - 2026-09-11
 
 ### Added
