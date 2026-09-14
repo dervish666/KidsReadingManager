@@ -7,17 +7,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  esbuild: {
-    loader: 'jsx',
+  // This codebase keeps JSX in .js files. Vite 8 transforms with oxc instead of
+  // esbuild, and oxc skips .js by default and infers "no JSX" from the
+  // extension, so both the filter and the language have to be set explicitly.
+  // The old `esbuild: { loader: 'jsx' }` does not carry over — Vite's
+  // esbuild-to-oxc shim maps jsx/define and silently drops `loader`.
+  oxc: {
     include: /src\/.*\.jsx?$/,
     exclude: [],
-  },
-  optimizeDeps: {
-    esbuildOptions: {
-      loader: {
-        '.js': 'jsx',
-      },
-    },
+    lang: 'jsx',
   },
   resolve: {
     alias: {
