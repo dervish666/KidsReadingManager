@@ -1,155 +1,125 @@
 {
-  "generatedAt": "2026-09-02",
+  "generatedAt": "2026-09-15",
   "issue": "September 2026",
   "title": "Reading News",
-  "intro": "A back-to-school issue: a new Children's Laureate, a £50,000 prize for books aimed at 8 to 12-year-olds, MPs asking for a library in every primary, a Horrible History of football, and Biff, Chip and Kipper quietly turning forty.",
+  "intro": "Two fortieth birthdays this issue — Mrs Large's bath and the Oxford Reading Tree — plus Michael Morpurgo's memoir arriving on Thursday, twenty-five years of the Roman Mysteries, and the first sign that reading enjoyment has stopped falling.",
   "isPreview": false,
   "items": [
     {
-      "id": "jill-murphy-picture-books-sept-2026",
-      "headline": "Before Mildred there was Peace at Last, and it suits a new Reception class",
+      "id": "jill-murphy-five-minutes-peace-40-2026",
+      "headline": "Five Minutes' Peace turns forty, and Mrs Large still doesn't get any",
       "author": "Jill Murphy",
       "book": "A Bad Spell for the Worst Witch",
       "rank": 1,
       "kind": "spotlight",
-      "summary": "The Worst Witch is still the most-read series across our schools, but Murphy wrote for much younger readers too. Peace at Last (1980), Whatever Next! (1983) and Five Minutes' Peace (1986) are read-alouds a new Reception or Year 1 class can meet in September, and Five Minutes' Peace alone has sold over five million copies. Publishers turned The Worst Witch down at first. They told Murphy a school for witches would frighten children.",
-      "source": "Penguin Books",
-      "link": "https://www.penguin.co.uk/series/WOR/the-worst-witch"
+      "summary": "The Worst Witch is still the most-read series across our schools, but Murphy's other great creation had its fortieth birthday this year. Walker Books published Five Minutes' Peace in 1986, and Mrs Large has been trying to eat her breakfast in the bath ever since. It is the surest laugh in a Reception read-aloud, and it pairs neatly with the Worst Witch if you want one author to carry a whole-school week rather than two.",
+      "source": "Walker Books",
+      "link": null
     },
     {
-      "id": "biff-chip-kipper-40-years-2026",
-      "headline": "Biff, Chip and Kipper turn forty this year",
+      "id": "oxford-reading-tree-40-years-2026",
+      "headline": "Forty years of Biff, Chip and Kipper, and Oxford is marking it",
       "author": "Roderick Hunt",
       "book": "A Cat in the Tree",
       "rank": 4,
       "kind": "news",
-      "summary": "Oxford University Press has published the Oxford Reading Tree since 1986, which makes 2026 the fortieth year of Roderick Hunt's stories and Alex Brychta's pictures. Most of the reads logged across our schools are the early levels, where the magic key first appears. If you fancy marking it, four decades of children following that key is an easy assembly, and Oxford Owl has a free ebook library for home reading.",
-      "source": "Oxford Owl, Oxford University Press",
-      "link": "https://home.oxfordowl.co.uk/bookshop/read-with-oxford/biff-chip-and-kipper/"
+      "summary": "Roderick Hunt and illustrator Alex Brychta created Biff, Chip, Kipper and Floppy in 1986, so 2026 is the Oxford Reading Tree's fortieth year. Oxford University Press puts the reach at more than 30 million children across over 130 countries. Nearly everything our schools log is the early levels, where the magic key first turns up, and Oxford Owl's free ebook library is the easy thing to point parents at for home reading.",
+      "source": "Oxford University Press",
+      "link": null
     },
     {
-      "id": "rob-childs-football-september-2026",
-      "headline": "The football season is back, and so is the reader who only reads football",
-      "author": "Rob Childs",
-      "book": "A Blast from the Past",
-      "rank": 7,
-      "kind": "spotlight",
-      "summary": "Rob Childs was a Leicestershire teacher who coached school football, cricket and cross-country before he wrote any of this, which is why the matches read like someone who has stood on the touchline. The Big Match books are still in print with Penguin alongside the County Cup series. They are short and fast, built for the child who has decided reading is not for them, and September is when they work best.",
-      "source": "Penguin Books",
-      "link": "https://www.penguin.co.uk/authors/184608/rob-childs"
-    },
-    {
-      "id": "morpurgo-down-burrow-lane-out-this-month",
-      "headline": "Michael Morpurgo's memoir is out on 17 September, about the farm behind Farm Boy",
+      "id": "morpurgo-down-burrow-lane-out-17-september",
+      "headline": "Morpurgo's memoir is out on Thursday, and the farm behind it turns fifty",
       "author": "Michael Morpurgo",
       "book": "Farm Boy",
       "rank": 8,
       "kind": "release",
-      "summary": "Down Burrow Lane is Morpurgo's account of fifty years on a remote Devon farm, the one that gave him War Horse, Private Peaceful and Farm Boy. He and Clare moved there as a young schoolteacher and his wife, and their charity Farms for City Children has since welcomed more than 100,000 city children to the same fields. It turns fifty this year too. Hachette publishes the book in hardback at £20 on 17 September.",
-      "source": "Hachette Children's Group",
-      "link": "https://www.hachette.co.uk/titles/michael-morpurgo-2/down-burrow-lane/9781399760119/"
+      "summary": "Down Burrow Lane is Morpurgo's account of the remote Devon farm he and Clare moved to as a young schoolteacher and his wife — the one that gave him War Horse, Private Peaceful and Farm Boy. Hodder & Stoughton publish it on 17 September. Farms for City Children, the charity that farm became, was founded in 1976 and so turns fifty this year, with more than 100,000 children having stayed on its farms since.",
+      "source": "Hodder & Stoughton",
+      "link": null
     },
     {
-      "id": "caroline-lawrence-roman-mysteries-2026",
-      "headline": "Seventeen Roman Mysteries, a BBC series, and a free set of teaching notes",
+      "id": "roman-mysteries-25-years-2026",
+      "headline": "Twenty-five years of the Roman Mysteries, and seventeen books to work through",
       "author": "Caroline Lawrence",
       "book": "The Enemies of Jupiter",
       "rank": 9,
       "kind": "spotlight",
-      "summary": "The Enemies of Jupiter is book seven of seventeen, so a child who has just finished it has ten more to go, and the whole run was televised by the BBC in 2007 and 2008. Lawrence's own site has teaching resources for the series and details of school visits, and her latest book, Pantheon (2024), is a companion to the characters of Greek myth for the reader who wants to move from Romans to Greeks.",
-      "source": "Caroline Lawrence",
-      "link": "https://carolinelawrence.com/"
-    },
-    {
-      "id": "horrible-histories-football-2026",
-      "headline": "Horrible Histories has done football, in time for the World Cup",
-      "author": "Terry Deary",
-      "book": "The Awful Egyptians",
-      "rank": 12,
-      "kind": "release",
-      "summary": "Horrible Histories: Football came out from Scholastic on 7 May, illustrated by Martin Brown, and runs from the medieval game with no rules beyond not deliberately killing the other side to the Christmas Day match of 1914. For the child who has read every Awful, Terrible and Vile volume and now only wants to talk about the World Cup, this is the bridge. Paperback, ISBN 9780702344800.",
-      "source": "Scholastic",
-      "link": "https://booksupstairs.ie/product/football/"
+      "summary": "The Thieves of Ostia, the first of the Roman Mysteries, was published in 2001, which makes the series twenty-five this year. The Enemies of Jupiter, the one our schools read most, is book seven of seventeen — so a child who has just finished it has ten more ahead of them. The BBC televised the series in 2007 and 2008 if you want Flavia's Ostia in pictures as well as in print.",
+      "source": "Orion Children's Books",
+      "link": null
     }
   ],
   "events": [
-    {
-      "id": "roald-dahl-day-2026",
-      "date": "2026-09-13",
-      "name": "Roald Dahl Day, his 110th birthday",
-      "kind": "event",
-      "blurb": "Dahl was born in Llandaff on 13 September 1916, so this is the 110th. It lands on a Sunday, which makes the Friday before the obvious day to do something about it.",
-      "link": "https://www.roalddahl.com/"
-    },
     {
       "id": "julia-donaldson-birthday-2026",
       "date": "2026-09-16",
       "name": "Julia Donaldson's birthday",
       "kind": "birthday",
-      "blurb": "Born 16 September 1948, and still the safest bet in any infant classroom. Three days after Roald Dahl Day, if you would rather run one story week than two separate things.",
-      "link": "https://www.juliadonaldson.co.uk/"
+      "blurb": "Born 16 September 1948, and still the safest bet in any infant classroom. It falls on the Wednesday this year, which is a gift if you want a mid-week story session that needs no preparation.",
+      "link": null
     },
     {
       "id": "national-poetry-day-2026",
       "date": "2026-10-01",
       "name": "National Poetry Day",
       "kind": "event",
-      "blurb": "Thursday 1 October, and this year's theme is wonder. The National Literacy Trust has free classroom resources, and the day is partnered with Michael Rosen and Hot Poets on climate and poetry.",
-      "link": "https://literacytrust.org.uk/resources/national-poetry-day-resources/"
+      "blurb": "Thursday 1 October, and this year's theme is wonder. The National Literacy Trust has free classroom resources ready to download if you would rather not build something from scratch.",
+      "link": null
     },
     {
       "id": "michael-morpurgo-birthday-2026",
       "date": "2026-10-05",
       "name": "Michael Morpurgo's birthday",
       "kind": "birthday",
-      "blurb": "Born 5 October 1943, so he turns 83 a few weeks after Down Burrow Lane comes out. A neat excuse to put War Horse or Farm Boy in front of an upper key stage 2 class.",
-      "link": "https://www.michaelmorpurgo.com/"
-    },
-    {
-      "id": "green-libraries-week-2026",
-      "date": "2026-10-21",
-      "name": "Green Libraries Week",
-      "kind": "event",
-      "blurb": "Wednesday 21 to Wednesday 28 October, CILIP's climate-themed week for libraries. This year it is about climate facts and spotting misinformation, which is a ready-made non-fiction lesson if your local library is running something.",
-      "link": "https://www.cilip.org.uk/advocacy/research-and-development/green-libraries-campaign/green-libraries-week/"
+      "blurb": "Born 5 October 1943, so he turns 83 a fortnight after Down Burrow Lane comes out. A neat excuse to put War Horse or Farm Boy in front of an upper key stage 2 class.",
+      "link": null
     },
     {
       "id": "national-non-fiction-november-2026",
       "date": "2026-11-01",
       "name": "National Non-Fiction November",
       "kind": "event",
-      "blurb": "The whole of November, run by the Federation of Children's Book Groups. The child who will not touch a story but knows every fact about sharks gets a month where that counts as reading. World Nursery Rhyme Week sits inside it, 9 to 13 November, for the youngest.",
-      "link": "https://literacytrust.org.uk/resources/literacy-teaching-calendar/"
+      "blurb": "The whole of November, run by the Federation of Children's Book Groups. The child who will not touch a story but knows every fact about sharks gets a month where that counts as reading. This year's theme had not been announced when we went to press.",
+      "link": null
+    },
+    {
+      "id": "childrens-booker-shortlist-2026",
+      "date": "2026-11-24",
+      "name": "First Children's Booker Prize shortlist",
+      "kind": "event",
+      "blurb": "Tuesday 24 November, when the eight shortlisted books are named along with the three children aged 8 to 12 who will judge alongside the adults. Eight titles aimed squarely at your upper key stage 2 readers, arriving just in time for the spring term.",
+      "link": null
     }
   ],
   "general": [
     {
-      "id": "patrice-lawrence-laureate-2026-2028",
-      "label": "Reading news",
-      "text": "Patrice Lawrence MBE is the new Waterstones Children's Laureate, the fourteenth, announced on 7 July 2026 and in post until 2028. She follows Frank Cottrell-Boyce, and her theme is shared and sociable reading rather than reading alone.",
+      "id": "nlt-annual-literacy-survey-2026",
+      "label": "Reading research",
+      "text": "Reading enjoyment has gone up for the first time in five years. The National Literacy Trust's 2026 annual survey, taken by 125,375 children and young people between January and March, found 36.1% of 8 to 18-year-olds enjoy reading in their free time — a small rise from the lowest figure since the survey began in 2005.",
+      "source": "National Literacy Trust",
+      "link": null
+    },
+    {
+      "id": "booktrust-bookbuzz-primary-2026",
+      "label": "Worth knowing",
+      "text": "BookTrust's Bookbuzz Primary lets every child in Years 3 to 6 choose a book from sixteen hand-picked titles and keep it. It costs £3.65 a pupil, the school also gets two copies of each of the sixteen for its own shelves, and registration for 2026 is open.",
       "source": "BookTrust",
-      "link": "https://www.booktrust.org.uk/about-us/news-updates/patrice-lawrence-mbe-announced-as-waterstones-childrens-laureate-2026-2028/"
+      "link": null
+    },
+    {
+      "id": "yoto-carnegies-2027-shadowing",
+      "label": "Worth knowing",
+      "text": "Registration for the 2027 Yoto Carnegies shadowing scheme opens in November. Longlists are announced in February and shortlists in March, with the winners in late June — and longlist shadowing is age-inclusive, so a primary reading group can take part rather than only secondary ones.",
+      "source": "CILIP, the Yoto Carnegies",
+      "link": null
     },
     {
       "id": "childrens-booker-prize-first-year",
       "label": "Reading news",
-      "text": "The Booker Prize Foundation has launched a Children's Booker Prize for fiction aimed at 8 to 12-year-olds. The winner takes £50,000, each of the eight shortlisted authors gets £2,500, and three children sit on the panel that picks the winner. Frank Cottrell-Boyce chairs the first jury. Shortlist in late November 2026, winner in February 2027.",
+      "text": "The Booker Prize Foundation has launched a Children's Booker Prize for fiction aimed at 8 to 12-year-olds. The winner takes £50,000, the shortlist of eight is announced on 24 November 2026, and the winner on 2 February 2027 — chosen by a panel that includes three children.",
       "source": "The Booker Prizes",
-      "link": "https://thebookerprizes.com/the-childrens-booker-prize"
-    },
-    {
-      "id": "education-committee-reading-for-pleasure-2026",
-      "label": "Worth knowing",
-      "text": "The cross-party Education Committee reported on 17 July 2026 that every state primary and secondary should have a funded library by law, that every child in England should get a library card at birth, and that the government should commit to a National Reading Guarantee from birth to 18.",
-      "source": "National Literacy Trust, on the Education Select Committee report",
-      "link": "https://literacytrust.org.uk/blog/what-does-the-education-select-committee-report-tell-us/"
-    },
-    {
-      "id": "national-year-of-reading-autumn-2026",
-      "label": "Did you know?",
-      "text": "The autumn term of the National Year of Reading has the theme The Community: schools working with parents and the local public library rather than doing reading alone. The National Literacy Trust's toolkits and webinars are free, and you can join partway through.",
-      "source": "National Literacy Trust",
-      "link": "https://literacytrust.org.uk/about-us/national-year-of-reading-2026/schools/"
+      "link": null
     }
   ]
 }
