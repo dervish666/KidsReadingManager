@@ -9,9 +9,15 @@
  * registered in worker.js and produce the same response shape.
  */
 
+import { isTransientD1Error } from '../utils/d1Retry.js';
+
 /** app.onError handler — install with `app.onError(onError)`. */
 export const onError = (err, c) => {
-  console.error(`Error in request to ${c.req.path}:`, err.message);
+  // A transient D1 failure on a request path is Cloudflare's, not ours, but it
+  // still cost a user a save. Tag it so Sentry can count them separately from
+  // real bugs; before this it was indistinguishable from any other 500.
+  const tag = isTransientD1Error(err) ? '[D1Transient] ' : '';
+  console.error(`${tag}Error in request to ${c.req.path}:`, err.message);
   const status = err.status || 500;
   // For 5xx errors, don't leak internal details to client
   const message = status >= 500 ? 'Internal Server Error' : err.message || 'An error occurred';

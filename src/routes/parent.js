@@ -17,6 +17,7 @@
 import { Hono } from 'hono';
 import { requireTeacher, rateLimit } from '../middleware/tenant.js';
 import { requireDB } from '../utils/routeHelpers.js';
+import { retryD1 } from '../utils/d1Retry.js';
 import { generateId, generateToken } from '../utils/helpers.js';
 import { notFoundError, badRequestError } from '../middleware/errorHandler.js';
 import {
@@ -563,7 +564,9 @@ parentRouter.post('/:token/sessions', rateLimit(10, 60000, 'parent:sessions'), a
   // show the child as having read at school. The current_streak below still
   // reflects home reading via updateStudentStreak.
 
-  await db.batch(coreWrites);
+  // A parent on a phone will not retry a failed save; see the note in
+  // students/sessions.js for why the batch is wrapped.
+  await retryD1(() => db.batch(coreWrites), { label: 'session:parent' });
 
   // Side-effects: shared best-effort chain (see runSessionSideEffects in
   // students/_shared.js — single source of truth with the teacher route).

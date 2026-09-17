@@ -64,11 +64,25 @@ const LogReadingSheet = ({ open, apiBase, logBook, streak, onChooseBook, onClose
         bookTitleManual: logBook?.source === 'external' ? logBook.title : null,
         bookAuthorManual: logBook?.source === 'external' ? logBook.author : null,
       };
-      const res = await fetch(`${apiBase}/sessions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const post = () =>
+        fetch(`${apiBase}/sessions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      // One retry, and only when the request never reached our handler: a
+      // dropped connection or an edge 502/503/504. A 500 from the Worker may
+      // have already committed the session, and retrying that would log it
+      // twice. Transient D1 failures are retried server-side instead.
+      let res;
+      try {
+        res = await post();
+      } catch {
+        res = await post();
+      }
+      if ([502, 503, 504].includes(res.status)) {
+        res = await post();
+      }
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         throw new Error(errBody.error || 'Failed to log reading');

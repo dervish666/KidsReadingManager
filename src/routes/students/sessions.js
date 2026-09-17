@@ -21,6 +21,7 @@ import { validateSessionInput } from '../../utils/validation.js';
 import { notFoundError, badRequestError } from '../../middleware/errorHandler.js';
 import { requireReadonly, requireTeacher, auditLog } from '../../middleware/tenant.js';
 import { getDB, requireStudent } from '../../utils/routeHelpers.js';
+import { retryD1 } from '../../utils/d1Retry.js';
 import { recalculateStats, evaluateRealTime } from '../../utils/badgeEngine.js';
 import { classNameToYearGroup } from '../../utils/yearGroup.js';
 import { updateClassGoalOnSession } from '../../utils/classGoalsEngine.js';
@@ -284,7 +285,10 @@ sessionsRouter.post('/:id/sessions', requireTeacher(), auditLog('create', 'sessi
     );
   }
 
-  await db.batch(coreWrites);
+  // D1 sheds load in bursts ("DB is overloaded", 127 times 14-17 Sep 2026) and a
+  // bare batch turns one shed second into a lost session. retryD1 costs nothing
+  // on the good path and under a second on the bad one.
+  await retryD1(() => db.batch(coreWrites), { label: 'session:create' });
 
   // Side-effects: shared best-effort chain (see runSessionSideEffects in
   // _shared.js — single source of truth with the parent portal).
@@ -500,7 +504,7 @@ sessionsRouter.post(
       );
     }
 
-    await db.batch(coreWrites);
+    await retryD1(() => db.batch(coreWrites), { label: 'session:bulk' });
 
     // Side-effects ONCE for the whole batch (the entire point of this route)
     const allMarkers = newSessions.every((s) => s.isMarker);

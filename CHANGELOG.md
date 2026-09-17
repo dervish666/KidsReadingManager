@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.135.3] - 2026-09-17
+
+### Fixed
+
+- **A reading session no longer fails to save when the database sheds load.** Cloudflare's D1 has been refusing requests in short bursts since 14 September ("DB is overloaded", 127 times in four days, none before), and a save that landed on one of those seconds came back as an error. The retry ladder the nightly jobs already use now wraps the session write on the teacher, bulk and parent-portal routes: a shed request is retried up to three times over under a second, and a genuine failure still fails. The parent portal also resends once if the connection drops or the edge answers 502/503/504, but never after a 500 from the app itself, because that save may already have landed and a resend would log it twice.
+- **Transient database failures on a request are now tagged in Sentry** (`[D1Transient]`), so they can be counted apart from real bugs. Before this a lost save and a code error produced the same log line.
+
 ## [3.135.2] - 2026-09-17
 
 ### Changed
