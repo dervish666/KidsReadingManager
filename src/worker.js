@@ -1185,10 +1185,6 @@ async function runScheduledTask(event, env, ctx) {
   // does — the monitor just stops working, exactly as documented in
   // docs/sentry.md.
   if (event.cron === '7 * * * *') {
-    // Watchdog first, so a slow or failing demo reset can't stop the
-    // nightly jobs' absence detection from being reported.
-    await checkCronFreshness(db);
-
     await Sentry.withMonitor(
       'demo-environment-reset',
       async () => {
@@ -1211,6 +1207,19 @@ async function runScheduledTask(event, env, ctx) {
         maxRuntime: 15,
       }
     );
+  }
+
+  // Cron liveness watchdog — hourly at 37 past, on its own minute.
+  //
+  // It used to run at :07 immediately before the demo reset. On 2026-09-16
+  // 17:07 D1 was shedding load, so the watchdog's own SELECT failed, then the
+  // reset hit the same wall and fell back to row-by-row: three Sentry issues
+  // from one bad minute, and the watchdog reporting a "self-failure" for a
+  // condition the job it guards was about to report anyway. :37 shares a
+  // minute with nothing but the every-minute poller, and sits clear of the
+  // :00/:15/:30/:45 heartbeat slots.
+  if (event.cron === '37 * * * *') {
+    await checkCronFreshness(db);
   }
 
   console.log(`[Cron] Scheduled task (${event.cron}) finished at ${new Date().toISOString()}`);

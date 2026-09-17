@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.135.2] - 2026-09-17
+
+### Changed
+
+- **The cron watchdog runs on its own minute.** It used to run at seven past the hour, immediately before the hourly demo reset. On 16 September the database was refusing queries for about a minute at exactly that time: the watchdog's own check failed, the reset behind it hit the same wall and rebuilt row by row, and one bad minute produced three separate alerts. The watchdog now runs at 37 past, clear of every other scheduled job, so the job that reports absences can no longer be knocked over by the job it reports on. No pupil data was at risk: the database refused reads, it did not lose writes.
+
 ## [3.135.1] - 2026-09-14
 
 ### Fixed
