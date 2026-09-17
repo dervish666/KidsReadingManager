@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.136.0] - 2026-09-17
+
+### Added
+
+- **Tap a session in "Today so far" to see it in full.** The rows under the record form on School Reading used to select the child in the form, and only when they were in the current class filter, so for most taps nothing visibly happened. Each row now opens a dialog for that session: the book cover, title and author, the assessment label with its score out of ten, pages and minutes, the ticked reading observations, and any notes. A "Record for <name>" button in the dialog does what the tap used to do.
+
 ## [3.135.3] - 2026-09-17
 
 ### Fixed

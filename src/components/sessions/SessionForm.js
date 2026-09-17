@@ -933,6 +933,7 @@ const SessionForm = () => {
         date={date}
         refreshKey={savedCount}
         students={students}
+        observationItems={observationItems}
         onPickStudent={(id) => setSelectedStudentId(id)}
       />
       {/* Student Books Read */}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, ButtonBase, Paper, Skeleton, Typography } from '@mui/material';
 import { formatShortDate } from '../../utils/dateLabels';
+import SessionDetailDialog from './SessionDetailDialog';
 
 // Matches the Reading Timeline legend: Independent 8-10, Moderate 4-7,
 // Needing help 1-3.
@@ -14,7 +15,7 @@ export function assessmentLabel(assessment) {
 /**
  * The sessions already logged for the selected date and class. Sits under
  * the record form so a volunteer in the reading corner can see who has been
- * done without leaving the page. Tap a row to select that child in the form.
+ * done without leaving the page. Tap a row to see that session in full.
  */
 export default function TodaySoFar({
   fetchWithAuth,
@@ -23,8 +24,10 @@ export default function TodaySoFar({
   refreshKey = 0,
   onPickStudent,
   students = [],
+  observationItems = [],
 }) {
   const [sessions, setSessions] = useState(null);
+  const [openSession, setOpenSession] = useState(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -93,7 +96,6 @@ export default function TodaySoFar({
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
           {sessions.map((s) => {
             const label = assessmentLabel(s.assessment);
-            const pickable = Boolean(onPickStudent) && known.has(s.studentId);
             const row = (
               <>
                 <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -127,23 +129,26 @@ export default function TodaySoFar({
               borderBottom: '1px solid rgba(139, 115, 85, 0.12)',
               '&:last-of-type': { borderBottom: 'none' },
             };
-            return pickable ? (
+            return (
               <ButtonBase
                 key={s.id}
-                onClick={() => onPickStudent(s.studentId)}
-                aria-label={`Select ${s.studentName}`}
+                onClick={() => setOpenSession(s)}
+                aria-label={`View session for ${s.studentName}`}
                 sx={{ ...sx, '&:hover': { backgroundColor: 'rgba(107, 142, 107, 0.08)' } }}
               >
                 {row}
               </ButtonBase>
-            ) : (
-              <Box key={s.id} sx={sx}>
-                {row}
-              </Box>
             );
           })}
         </Box>
       )}
+      <SessionDetailDialog
+        session={openSession}
+        open={Boolean(openSession)}
+        onClose={() => setOpenSession(null)}
+        onPickStudent={onPickStudent && known.has(openSession?.studentId) ? onPickStudent : null}
+        observationItems={observationItems}
+      />
     </Paper>
   );
 }

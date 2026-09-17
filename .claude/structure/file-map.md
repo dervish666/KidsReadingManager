@@ -260,7 +260,8 @@ src/components/sessions/DateRangePanel.js - Date picker, date range preset, cust
 src/components/sessions/StudentBooksRead.js - Selected student's books-read history strip with covers (full view)
 src/components/sessions/QuickReadingView.js - Compact quick-entry reading view
 src/components/sessions/SessionForm.js - Reading session form
-src/components/sessions/TodaySoFar.js - Sessions already logged for the selected date and class (GET /api/students/sessions, school only), under the record form; tap a row to select that pupil
+src/components/sessions/TodaySoFar.js - Sessions already logged for the selected date and class (GET /api/students/sessions, school only), under the record form; tap a row to open SessionDetailDialog
+src/components/sessions/SessionDetailDialog.js - Read-only modal for one logged session (cover, assessment, pages/minutes, observation chips, notes) with a "Record for <child>" button that selects them in the form
 src/components/sessions/BookAutocomplete.js - Book search autocomplete
 src/components/sessions/AssessmentSelector.js - Assessment level radio group
 src/components/sessions/ReadingObservationToggles.js - Optional "how did they read today?" toggle chips (fluent/expressive/phonics), shared by session form + timeline edit
